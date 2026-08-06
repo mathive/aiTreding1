@@ -34,13 +34,6 @@ export const ConnectionGate: React.FC<Props> = ({ onConnected }) => {
       if (res.ok && data.success) {
         setStep("done");
         showToast?.("Connected to Vantage — " + (data.account?.name || "Trader"), "success");
-        // Bootstrap the system with MT5 account info
-        try {
-          await fetch("/api/bootstrap", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mt5Login, mt5Server, accountName: data.account?.name, accountBalance: data.account?.balance }),
-          });
-        } catch {}
         await refreshAllData?.();
         setTimeout(() => onConnected(), 500);
       } else {
