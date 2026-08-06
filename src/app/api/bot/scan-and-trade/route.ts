@@ -15,7 +15,12 @@ export async function POST(request: Request) {
     let [bot] = await db.select().from(botConfigs).where(eq(botConfigs.userId, currentUser.id)).limit(1);
     if (!bot) { const defaultBots = await db.select().from(botConfigs).limit(1); bot = defaultBots[0]; }
     const allStrategies = await db.select().from(strategies);
-    const activeStrategyIds = (bot?.selectedStrategyIds || []).map((s: any) => s.strategyId);
+    // Parse JSON fields from SQLite if they come back as strings
+    let sids: any[] = [];
+    if (bot?.selectedStrategyIds) {
+      try { sids = typeof bot.selectedStrategyIds === "string" ? JSON.parse(bot.selectedStrategyIds) : bot.selectedStrategyIds; } catch { sids = []; }
+    }
+    const activeStrategyIds = (Array.isArray(sids) ? sids : []).map((s: any) => s.strategyId);
     const activeStrategies = allStrategies.filter((s) => activeStrategyIds.includes(s.id) || (s.isActive && activeStrategyIds.length === 0));
     const openTrades = await db.select().from(trades).where(and(eq(trades.userId, currentUser.id), eq(trades.status, "OPEN")));
     const openSymbols = new Set(openTrades.map((t) => t.symbol));

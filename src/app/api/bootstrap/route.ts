@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         { id: "s3", userId, name: "Mean Reversion", description: "Buy dips sell rips", category: "mean_reversion", timeframes: ["15m","1h"], indicators: {} as any, targetAssets: ["XAU/USD","EUR/USD"], weight: 30, minConfidence: 72, stopLossPercent: "1.80", takeProfitPercent: "4.00", trailingStop: false, isActive: false, createdAt: T, updatedAt: T },
       ];
       for (const s of defaultStrats) {
-        await db.insert(strategies).values({ ...s, traderTypeMatch: "all", indicators: JSON.stringify({}), targetAssets: JSON.stringify(s.targetAssets), timeframes: JSON.stringify(s.timeframes) });
+        await db.insert(strategies).values({ ...s, traderTypeMatch: "all", indicators: {} as any, targetAssets: s.targetAssets as any, timeframes: s.timeframes as any });
       }
     }
 
@@ -53,9 +53,9 @@ export async function POST(request: Request) {
     if (existingBot.length === 0) {
       await db.insert(botConfigs).values({
         id: "bot_default", userId, name: "Default Bot",
-        isActive: false, selectedStrategyIds: JSON.stringify([{ strategyId: "s1", weight: 50 }, { strategyId: "s2", weight: 50 }]),
+        isActive: false, selectedStrategyIds: [{ strategyId: "s1", weight: 50 }, { strategyId: "s2", weight: 50 }] as any,
         confluenceThreshold: 75, tradeAllocationType: "percent", tradeAllocationValue: "5.00",
-        maxOpenTrades: 4, allowedMarkets: JSON.stringify(["forex", "commodities"]),
+        maxOpenTrades: 4, allowedMarkets: ["forex", "commodities"] as any,
         executionMode: "semi_autonomous", defaultLeverage: 100,
         createdAt: T, updatedAt: T,
       });

@@ -10,13 +10,18 @@ export async function GET() {
   try {
     const currentUser = await getCurrentUser();
     let [bot] = await db.select().from(botConfigs).where(eq(botConfigs.userId, currentUser.id)).limit(1);
-    if (!bot) {
-      // No config exists — return empty defaults, don't crash
-      bot = null;
+
+    // Parse JSON fields that may come back as strings from SQLite
+    if (bot) {
+      try {
+        if (typeof bot.selectedStrategyIds === "string") bot.selectedStrategyIds = JSON.parse(bot.selectedStrategyIds);
+        if (typeof bot.allowedMarkets === "string") bot.allowedMarkets = JSON.parse(bot.allowedMarkets);
+      } catch {}
     }
+
     const allStrategies = await db.select().from(strategies);
     const openTrades = await db.select().from(trades).where(and(eq(trades.userId, currentUser.id), eq(trades.status, "OPEN")));
-    const activeStrategyIds = bot ? (bot.selectedStrategyIds || []).map((s: any) => s.strategyId) : [];
+    const activeStrategyIds = bot ? (Array.isArray(bot.selectedStrategyIds) ? bot.selectedStrategyIds.map((s: any) => s.strategyId) : []) : [];
     const activeStrategies = allStrategies.filter((s) => activeStrategyIds.includes(s.id) || s.isActive);
     let liveTickers: LiveTicker[];
     try { liveTickers = await getLiveTickers(); } catch { liveTickers = []; }
