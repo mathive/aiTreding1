@@ -3,34 +3,30 @@
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, Server, AlertCircle, KeyRound, TrendingUp, WifiOff } from "lucide-react";
 
-interface Props { onConnected: () => void; }
+interface Props { onConnected: (userData: any) => void; }
 
 export const ConnectionGate: React.FC<Props> = ({ onConnected }) => {
-  const [login, setLogin] = useState("");
-  const [pwd, setPwd] = useState("");
+  const [login, setLogin] = useState(""); const [pwd, setPwd] = useState("");
   const [server, setServer] = useState("VantageFX-Live");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState("");
-  const [step, setStep] = useState<"idle" | "connecting" | "done">("idle");
+  const [step, setStep] = useState<"idle"|"connecting"|"done">("idle");
   const [stored, setStored] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetch("/api/mt5/accounts").then(r=>r.json()).then(d=>Array.isArray(d)&&setStored(d)).catch(()=>{});
-  }, []);
+  useEffect(() => { fetch("/api/mt5/accounts").then(r=>r.json()).then(d=>Array.isArray(d)&&setStored(d)).catch(()=>{}); }, []);
 
   const connect = async () => {
     if (!login || !pwd) { setError("Enter MT5 login and password."); return; }
     setConnecting(true); setError(""); setStep("connecting");
     try {
-      const r = await fetch("/api/mt5/account", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login: Number(login), password: pwd, server }),
-      });
+      const r = await fetch("/api/mt5/account", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({login:Number(login),password:pwd,server}) });
       const d = await r.json();
-      if (!r.ok || !d.success) { setStep("idle"); setError(d.error||"Connection failed."); setConnecting(false); return; }
-      // Bootstrap
+      if (!r.ok || !d.success) { setStep("idle"); setError(d.error||"Connection failed. Is MT5 running?"); setConnecting(false); return; }
 
-      onConnected();
+      const boot = await fetch("/api/bootstrap", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({mt5Login:login,mt5Server:server,accountName:d.account?.name,accountBalance:d.account?.balance}) });
+      const bootData = await boot.json();
+      setStep("done");
+      setTimeout(()=>onConnected(bootData), 500);
     } catch { setStep("idle"); setError("Bridge unreachable. Run: cd mt5-bridge && python server.py"); }
     finally { setConnecting(false); }
   };

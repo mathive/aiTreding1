@@ -182,6 +182,11 @@ interface AppContextType {
   // MT5 bridge state
   mt5Connected: boolean;
   setMt5Connected: (v: boolean) => void;
+  // Direct setters for bootstrap
+  setUser: (u: UserAccount | null) => void;
+  setTrades: (t: TradeItem[]) => void;
+  setStrategies: (s: StrategyItem[]) => void;
+  setMarketAssets: (a: MarketAsset[]) => void;
   orderModalSymbol: string | null;
   setOrderModalSymbol: (symbol: string | null) => void;
   editTradeModalItem: TradeItem | null;
@@ -628,6 +633,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleWatchlistFavorite,
         markAllNotificationsRead,
         deleteNotification,
+        setUser,
+        setTrades,
+        setStrategies,
+        setMarketAssets,
         orderModalSymbol,
         setOrderModalSymbol,
         editTradeModalItem,
