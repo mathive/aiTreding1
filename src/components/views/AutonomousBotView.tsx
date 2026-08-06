@@ -101,7 +101,7 @@ export const AutonomousBotView: React.FC = () => {
           <button
             onClick={handleToggleBot}
             className={`w-full sm:w-auto px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xl ${
-              botConfig?.isActive && user?.autoTradingEnabled
+              botConfig?.isActive
                 ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/80"
                 : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-950/80"
             }`}

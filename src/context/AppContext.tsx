@@ -187,6 +187,7 @@ interface AppContextType {
   setTrades: (t: TradeItem[]) => void;
   setStrategies: (s: StrategyItem[]) => void;
   setMarketAssets: (a: MarketAsset[]) => void;
+  setBotConfig: (b: BotConfigItem | null) => void;
   orderModalSymbol: string | null;
   setOrderModalSymbol: (symbol: string | null) => void;
   editTradeModalItem: TradeItem | null;
@@ -637,6 +638,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTrades,
         setStrategies,
         setMarketAssets,
+        setBotConfig,
         orderModalSymbol,
         setOrderModalSymbol,
         editTradeModalItem,
