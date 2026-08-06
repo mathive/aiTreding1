@@ -21,7 +21,7 @@ export const CreateStrategyModal: React.FC = () => {
   const [weight, setWeight] = useState<number>(30);
   const [minConfidence, setMinConfidence] = useState<number>(75);
   const [stopLossPercent, setStopLossPercent] = useState<string>("2.00");
-  const [takeProfitPercent, setTakeProfitPercent] = useState<string>("5.50");
+  const [takeProfitPercent, setTakeProfitPercent] = useState<string>("0.60");
   const [trailingStop, setTrailingStop] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 

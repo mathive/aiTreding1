@@ -75,6 +75,7 @@ export const AutonomousBotView: React.FC = () => {
   };
 
   const botTrades = [...openTrades, ...closedTrades].filter((t) => t.executionType === "ai_autonomous");
+  const totalBotPnl = botTrades.reduce((sum, trade) => sum + Number(trade.pnl || 0), 0);
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
@@ -88,6 +89,7 @@ export const AutonomousBotView: React.FC = () => {
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-white">Autonomous AI Trade Execution Engine</h1>
               <p className="text-xs text-slate-400 font-mono">SELECT STRATEGIES • SET CONFLUENCE WEIGHTS • AI TAKES THE TRADES</p>
+              <p className="text-[10px] text-amber-300 font-mono mt-1">AI GATE: AUTO · strict technical fallback only when API billing is unavailable</p>
             </div>
           </div>
           <p className="text-xs lg:text-sm text-slate-300 max-w-2xl leading-relaxed">
@@ -331,7 +333,7 @@ export const AutonomousBotView: React.FC = () => {
                   <div key={asset.symbol} className="pt-2 flex items-center justify-between text-xs">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-white">{asset.symbol}</span>
+                        <span className="font-bold text-white">{asset.displaySymbol || asset.symbol}</span>
                         {aboveThreshold && (
                           <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
                             TRIGGER READY
@@ -370,7 +372,7 @@ export const AutonomousBotView: React.FC = () => {
             <Activity className="w-4 h-4 text-cyan-400" />
             <h3 className="text-base font-bold text-white">Autonomous AI Execution Log ({botTrades.length})</h3>
           </div>
-          <span className="text-xs text-slate-400 font-mono">Total Bot PnL: <strong className="text-emerald-400">$0.00</strong></span>
+          <span className="text-xs text-slate-400 font-mono">Total Bot PnL: <strong className={totalBotPnl >= 0 ? "text-emerald-400" : "text-rose-400"}>{totalBotPnl >= 0 ? "+" : ""}${totalBotPnl.toFixed(2)}</strong></span>
         </div>
 
         {botTrades.length === 0 ? (
@@ -410,7 +412,10 @@ export const AutonomousBotView: React.FC = () => {
                       <td className={`py-3 px-3 font-bold ${isPositive ? "text-emerald-400" : "text-rose-400"}`}>
                         {isPositive ? "+" : ""}${pnlNum.toFixed(2)} ({formatPercent(t.pnlPercent)})
                       </td>
-                      <td className="py-3 px-3 font-sans text-slate-400 truncate max-w-xs">{t.strategyUsed}</td>
+                      <td className="py-3 px-3 font-sans text-slate-400 max-w-xs">
+                        <div className="font-semibold">{t.strategyUsed}</div>
+                        <div className="text-[10px] text-slate-500 line-clamp-2">{t.aiReasoning}</div>
+                      </td>
                       <td className="py-3 px-3">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.status === "OPEN" ? "bg-cyan-950 text-cyan-300 border border-cyan-800" : "bg-slate-800 text-slate-400"}`}>
                           {t.status}

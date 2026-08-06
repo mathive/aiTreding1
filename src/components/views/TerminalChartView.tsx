@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { CandlePoint } from "@/lib/market-data";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -38,15 +39,15 @@ export const TerminalChartView: React.FC = () => {
     strategies,
   } = useApp();
 
-  const [timeframe, setTimeframe] = useState<string>("1h");
+  const [timeframe, setTimeframe] = usePersistentState<string>("terminal_timeframe", "1m");
   const [candles, setCandles] = useState<CandlePoint[]>([]);
   const [loadingCandles, setLoadingCandles] = useState<boolean>(true);
 
   // Indicators toggle
-  const [showEma, setShowEma] = useState<boolean>(true);
-  const [showBollinger, setShowBollinger] = useState<boolean>(true);
-  const [showRsi, setShowRsi] = useState<boolean>(true);
-  const [showVolume, setShowVolume] = useState<boolean>(true);
+  const [showEma, setShowEma] = usePersistentState<boolean>("terminal_ema", true);
+  const [showBollinger, setShowBollinger] = usePersistentState<boolean>("terminal_bollinger", true);
+  const [showRsi, setShowRsi] = usePersistentState<boolean>("terminal_rsi", true);
+  const [showVolume, setShowVolume] = usePersistentState<boolean>("terminal_volume", true);
 
   // Order placement state
   const [orderType, setOrderType] = useState<"BUY" | "SELL">("BUY");
@@ -58,6 +59,9 @@ export const TerminalChartView: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
 
   const asset = marketAssets.find((a) => a.symbol === selectedSymbol) || marketAssets[0];
+  const signalQualified = Boolean((asset as any)?.tradeEligible && asset?.aiConfidence >= 80 && ((asset as any)?.alignmentCount ?? 0) >= 3);
+  const signalSide: "BUY" | "SELL" | null = signalQualified && asset?.trendStatus.includes("BUY")
+    ? "BUY" : signalQualified && asset?.trendStatus.includes("SELL") ? "SELL" : null;
 
   // Fetch candle data
   useEffect(() => {
@@ -85,21 +89,25 @@ export const TerminalChartView: React.FC = () => {
   // Update SL/TP defaults
   useEffect(() => {
     if (asset) {
+      if (signalSide && orderType !== signalSide) {
+        setOrderType(signalSide);
+        return;
+      }
       const price = asset.currentPrice;
       const isLong = orderType === "BUY";
-      const sl = isLong ? price * 0.98 : price * 1.02;
-      const tp = isLong ? price * 1.055 : price * 0.945;
+      const sl = (asset as any).recommendedStopLoss ?? (isLong ? price * 0.998 : price * 1.002);
+      const tp = (asset as any).recommendedTakeProfit ?? (isLong ? price * 1.006 : price * 0.994);
       setStopLoss(sl.toFixed(price < 10 ? 4 : 2));
       setTakeProfit(tp.toFixed(price < 10 ? 4 : 2));
       setLeverage(asset.recommendedLeverage || 5);
       setTradeAmount((asset as any).volumeMin ?? 0.01);
     }
-  }, [asset, orderType]);
+  }, [asset, orderType, signalSide]);
 
   const currentPrice = asset.currentPrice;
   const positionSize = tradeAmount * leverage;
-  const slPrice = parseFloat(stopLoss) || currentPrice * 0.98;
-  const tpPrice = parseFloat(takeProfit) || currentPrice * 1.055;
+  const slPrice = parseFloat(stopLoss) || (orderType === "BUY" ? currentPrice * 0.998 : currentPrice * 1.002);
+  const tpPrice = parseFloat(takeProfit) || (orderType === "BUY" ? currentPrice * 1.006 : currentPrice * 0.994);
 
   const potentialLoss = Math.abs(((currentPrice - slPrice) / currentPrice) * positionSize);
   const potentialGain = Math.abs(((tpPrice - currentPrice) / currentPrice) * positionSize);
@@ -107,6 +115,7 @@ export const TerminalChartView: React.FC = () => {
 
   const handleExecute = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signalSide || orderType !== signalSide) return;
     setIsExecuting(true);
     await executeTrade({
       symbol: asset.symbol,
@@ -216,7 +225,7 @@ export const TerminalChartView: React.FC = () => {
           <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-3">
             <div className="flex items-center justify-between text-xs text-slate-400 px-2">
               <div className="flex items-center gap-3">
-                <span className="font-bold text-white">{asset.symbol} • {timeframe} Chart</span>
+                <span className="font-bold text-white">{asset.displaySymbol || asset.symbol} • {timeframe} Chart</span>
                 {showEma && (
                   <span className="text-[10px] font-mono text-cyan-400">
                     EMA20: ${candles[candles.length - 1]?.ema20 || "-"} | EMA50: ${candles[candles.length - 1]?.ema50 || "-"}
@@ -315,18 +324,19 @@ export const TerminalChartView: React.FC = () => {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">Place Order</h3>
-              <span className="text-[10px] font-mono text-slate-400">{asset.symbol}</span>
+              <span className="text-[10px] font-mono text-slate-400">{asset.displaySymbol || asset.symbol}</span>
             </div>
 
             {/* Buy / Sell Tabs */}
             <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
               <button
                 type="button"
-                onClick={() => setOrderType("BUY")}
+                onClick={() => signalSide === "BUY" && setOrderType("BUY")}
+                disabled={signalSide !== "BUY"}
                 className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  orderType === "BUY"
+                  orderType === "BUY" && signalSide === "BUY"
                     ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
-                    : "text-slate-400 hover:text-white"
+                    : "text-slate-600 cursor-not-allowed opacity-50"
                 }`}
               >
                 <TrendingUp className="w-3.5 h-3.5" />
@@ -334,11 +344,12 @@ export const TerminalChartView: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setOrderType("SELL")}
+                onClick={() => signalSide === "SELL" && setOrderType("SELL")}
+                disabled={signalSide !== "SELL"}
                 className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  orderType === "SELL"
+                  orderType === "SELL" && signalSide === "SELL"
                     ? "bg-rose-600 text-white shadow-lg shadow-rose-600/30"
-                    : "text-slate-400 hover:text-white"
+                    : "text-slate-600 cursor-not-allowed opacity-50"
                 }`}
               >
                 <TrendingDown className="w-3.5 h-3.5" />
@@ -434,7 +445,7 @@ export const TerminalChartView: React.FC = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isExecuting}
+              disabled={isExecuting || !signalSide}
               className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-xl transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 ${
                 orderType === "BUY"
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
@@ -442,7 +453,7 @@ export const TerminalChartView: React.FC = () => {
               }`}
             >
               <Sparkles className="w-4 h-4" />
-              {isExecuting ? "Placing Trade..." : `Execute ${orderType} (${formatCurrency(positionSize)})`}
+              {isExecuting ? "Placing Trade..." : !signalSide ? "No Trade — Neutral Signal" : `Execute ${orderType} (${formatCurrency(positionSize)})`}
             </button>
           </form>
         </div>

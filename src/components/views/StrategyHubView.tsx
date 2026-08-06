@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import { useApp } from "@/context/AppContext";
 import {
   Layers,
@@ -18,12 +19,19 @@ import {
 export const StrategyHubView: React.FC = () => {
   const {
     strategies,
+    marketAssets,
     toggleStrategyActive,
     deleteStrategy,
     setIsCreateStratModalOpen,
   } = useApp();
 
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = usePersistentState<string>("strategy_category", "all");
+  const [statSymbol, setStatSymbol] = usePersistentState<string>("strategy_stat_symbol", "EURUSD");
+
+  const analyzedAssets = marketAssets.filter((asset: any) => (asset.strategySignals?.length || 0) > 0);
+  const statAsset = analyzedAssets.find((asset) => asset.symbol === statSymbol) || analyzedAssets[0];
+  const liveStats = [...(((statAsset as any)?.strategySignals || []) as Array<{ name: string; family?: string; bestAsset?: string; timeframe?: string; tradingTime?: string; sessionActive?: boolean; direction: "BUY" | "SELL"; confidence: number }>)]
+    .sort((a, b) => b.confidence - a.confidence);
 
   const filteredStrategies = strategies.filter((s) =>
     categoryFilter === "all" ? true : s.category === categoryFilter
@@ -54,12 +62,57 @@ export const StrategyHubView: React.FC = () => {
         </button>
       </div>
 
+      {/* Live underlying statistics */}
+      <section className="rounded-3xl border border-cyan-900/70 bg-slate-900/90 overflow-hidden">
+        <div className="p-4 lg:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <h2 className="text-sm font-bold text-white">Live Session Strategy Engine ({liveStats.length} applicable / 20 total)</h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Only strategies assigned to the selected asset are evaluated; inactive UTC sessions cannot qualify a trade.</p>
+          </div>
+          <select
+            value={statAsset?.symbol || ""}
+            onChange={(event) => setStatSymbol(event.target.value)}
+            className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-cyan-300 outline-none"
+          >
+            {analyzedAssets.map((asset) => <option key={asset.symbol} value={asset.symbol}>{asset.displaySymbol || asset.symbol}</option>)}
+          </select>
+        </div>
+        {liveStats.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500">Waiting for the live MT5 M1 analysis feed…</div>
+        ) : (
+          <div className="max-h-[480px] overflow-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="sticky top-0 bg-slate-950 text-[10px] uppercase text-slate-400 border-b border-slate-800">
+                <tr><th className="px-4 py-3">#</th><th className="px-4 py-3">Strategy</th><th className="px-4 py-3">Timeframe / UTC Window</th><th className="px-4 py-3">Session</th><th className="px-4 py-3">Signal</th><th className="px-4 py-3 text-right">Confidence</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono">
+                {liveStats.map((stat, index) => (
+                  <tr key={`${stat.name}-${index}`} className="hover:bg-slate-800/40">
+                    <td className="px-4 py-2.5 text-slate-600">{index + 1}</td>
+                    <td className="px-4 py-2.5 text-slate-200">{stat.name}</td>
+                    <td className="px-4 py-2.5 text-purple-300"><div>{stat.timeframe}</div><div className="text-[10px] text-slate-500">{stat.tradingTime}</div></td>
+                    <td className={`px-4 py-2.5 font-bold ${stat.sessionActive ? "text-emerald-400" : "text-slate-500"}`}>{stat.sessionActive ? "ACTIVE" : "WAIT"}</td>
+                    <td className={`px-4 py-2.5 font-bold ${stat.direction === "BUY" ? "text-emerald-400" : "text-rose-400"}`}>{stat.direction}</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-cyan-300">{stat.confidence}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       {/* Category Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
         {[
           { id: "all", label: "All Strategies" },
           { id: "breakout", label: "Breakout Systems" },
           { id: "momentum", label: "Momentum Trend Surge" },
+          { id: "scalping", label: "Scalping" },
+          { id: "trend_follow", label: "Trend Following" },
           { id: "smart_money", label: "Smart Money & Liquidity" },
           { id: "ml_ai", label: "Neural / AI Models" },
           { id: "mean_reversion", label: "Mean Reversion / Fib" },
@@ -132,7 +185,7 @@ export const StrategyHubView: React.FC = () => {
                       {tf}
                     </span>
                   ))}
-                  {(strategy.targetAssets || []).slice(0, 3).map((a) => (
+                  {(strategy.targetAssets || []).map((a) => (
                     <span key={a} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-cyan-400">
                       {a}
                     </span>

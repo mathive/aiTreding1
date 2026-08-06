@@ -35,6 +35,7 @@ export const DashboardOverview: React.FC = () => {
     closeTrade,
     runScanAndTrade,
     isScanning,
+    mt5Connected,
     setIsCreateStratModalOpen,
   } = useApp();
 
@@ -61,7 +62,7 @@ export const DashboardOverview: React.FC = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-800/80 text-cyan-300 text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              Autonomous AI Trend Trading Engine Active
+              {mt5Connected ? "Live MT5 Account Connected" : "MT5 Disconnected"}
             </div>
             <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
               Welcome back, {user?.name || "Trader"}
@@ -108,8 +109,8 @@ export const DashboardOverview: React.FC = () => {
             {formatCurrency(user?.balance)}
           </p>
           <div className="flex items-center gap-1.5 text-xs mt-2 text-slate-400">
-            <span>Starting:</span>
-            <span className="font-mono text-slate-300 font-semibold">Vantage MT5</span>
+            <span>Source:</span>
+            <span className="font-mono text-slate-300 font-semibold">{mt5Connected ? "Live Vantage MT5" : "Local profile"}</span>
           </div>
         </div>
 
@@ -321,7 +322,7 @@ export const DashboardOverview: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-sm text-white">{asset.symbol}</h4>
+                        <h4 className="font-bold text-sm text-white">{asset.displaySymbol || asset.symbol}</h4>
                         <span className="text-[9px] uppercase font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-400">
                           {asset.market}
                         </span>

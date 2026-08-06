@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { MarketAsset } from "@/lib/market-data";
 import { formatCurrency, playSound } from "@/lib/utils";
 
@@ -182,6 +182,10 @@ interface AppContextType {
   // MT5 bridge state
   mt5Connected: boolean;
   setMt5Connected: (v: boolean) => void;
+  priceScannerAutoEnabled: boolean;
+  setPriceScannerAutoEnabled: (v: boolean) => void;
+  priceScannerInterval: number;
+  setPriceScannerInterval: (v: number) => void;
   // Direct setters for bootstrap
   setUser: (u: UserAccount | null) => void;
   setTrades: (t: TradeItem[]) => void;
@@ -221,6 +225,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCreateStratModalOpen, setIsCreateStratModalOpen] = useState<boolean>(false);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState<boolean>(false);
   const [mt5Connected, setMt5Connected] = useState<boolean>(false);
+  const [priceScannerAutoEnabled, setPriceScannerAutoEnabled] = useState(false);
+  const [priceScannerInterval, setPriceScannerInterval] = useState(3);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("nexus_ui_preferences") || "{}");
+      if (typeof saved.activeTab === "string") setActiveTab(saved.activeTab);
+      if (typeof saved.selectedSymbol === "string") setSelectedSymbol(saved.selectedSymbol);
+      if (typeof saved.priceScannerAutoEnabled === "boolean") setPriceScannerAutoEnabled(saved.priceScannerAutoEnabled);
+      if ([1, 3, 5, 10, 30].includes(saved.priceScannerInterval)) setPriceScannerInterval(saved.priceScannerInterval);
+    } catch { /* Keep safe defaults if stored data is invalid. */ }
+    finally { setPreferencesLoaded(true); }
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesLoaded) return;
+    localStorage.setItem("nexus_ui_preferences", JSON.stringify({ activeTab, selectedSymbol, priceScannerAutoEnabled, priceScannerInterval }));
+  }, [activeTab, selectedSymbol, priceScannerAutoEnabled, priceScannerInterval, preferencesLoaded]);
+
+  // Keep the scanner/alert engine running even while another page is open.
+  useEffect(() => {
+    if (!priceScannerAutoEnabled) return;
+    let scanInFlight = false;
+    let disposed = false;
+    const scan = async () => {
+      if (scanInFlight || disposed) return;
+      scanInFlight = true;
+      try {
+        const requests: Promise<unknown>[] = [
+          fetch("/api/price-alerts/check", { method: "POST" }),
+        ];
+        if (botConfig?.isActive && user?.autoTradingEnabled) {
+          requests.push(fetch("/api/bot/scan-and-trade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ forceExecute: true }) }));
+        }
+        await Promise.allSettled(requests);
+      } finally {
+        scanInFlight = false;
+      }
+    };
+    void scan();
+    const interval = setInterval(scan, Math.max(1, priceScannerInterval) * 1000);
+    return () => { disposed = true; clearInterval(interval); };
+  }, [priceScannerAutoEnabled, priceScannerInterval, botConfig?.isActive, user?.autoTradingEnabled]);
 
   const showToast = useCallback((text: string, type: "success" | "error" | "info" = "success") => {
     setToastMessage({ text, type });
@@ -229,17 +277,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 4000);
   }, []);
 
-  const refreshAllData = useCallback(async () => {
+  const refreshInFlight = useRef(false);
+  const refreshAllData = useCallback(async (includeStatic = true) => {
+    if (refreshInFlight.current) return;
+    refreshInFlight.current = true;
     try {
-      const [uRes, tRes, mRes] = await Promise.allSettled([
-        fetch("/api/users"), fetch("/api/trades"), fetch("/api/market")
+      const [uRes, aRes, tRes, mRes, sRes, bRes, wRes] = await Promise.allSettled([
+        mt5Connected ? Promise.resolve(null) : fetch("/api/users", { cache: "no-store" }),
+        mt5Connected ? fetch("/api/mt5/account", { cache: "no-store" }) : Promise.resolve(null),
+        fetch("/api/trades", { cache: "no-store" }),
+        fetch("/api/market", { cache: "no-store" }),
+        includeStatic ? fetch("/api/strategies", { cache: "no-store" }) : Promise.resolve(null),
+        includeStatic ? fetch("/api/bot", { cache: "no-store" }) : Promise.resolve(null),
+        includeStatic ? fetch("/api/watchlists", { cache: "no-store" }) : Promise.resolve(null)
       ]);
-      try { if (uRes.status==="fulfilled" && uRes.value.ok) { const d=await uRes.value.json(); setUser(d.user); setAvailableUsers(d.availableUsers||[]); }} catch{}
+      try { if (uRes.status==="fulfilled" && uRes.value?.ok) { const d=await uRes.value.json(); setUser(d.user); setAvailableUsers(d.availableUsers||[]); }} catch{}
+      try {
+        if (aRes.status === "fulfilled" && aRes.value?.ok) {
+          const account = await aRes.value.json();
+          setUser((previous) => previous ? {
+            ...previous,
+            name: account.name || previous.name,
+            balance: String(account.balance ?? previous.balance ?? 0),
+            initialBalance: String(account.balance ?? previous.initialBalance ?? 0),
+            currency: account.currency || previous.currency,
+            maxLeverage: account.leverage || previous.maxLeverage,
+            tradingMode: "live",
+            apiKeySimulation: false,
+          } : previous);
+        }
+      } catch{}
       try { if (tRes.status==="fulfilled" && tRes.value.ok) { const d=await tRes.value.json(); setTrades(d.trades||[]); }} catch{}
       try { if (mRes.status==="fulfilled" && mRes.value.ok) { const d=await mRes.value.json(); setMarketAssets(d.assets||[]); }} catch{}
+      try { if (sRes.status==="fulfilled" && sRes.value?.ok) { const d=await sRes.value.json(); setStrategies(d.strategies||[]); }} catch{}
+      try { if (bRes.status==="fulfilled" && bRes.value?.ok) { const d=await bRes.value.json(); if (d.bot) setBotConfig((previous) => ({ ...previous, ...d.bot } as BotConfigItem)); }} catch{}
+      try { if (wRes.status==="fulfilled" && wRes.value?.ok) { const d=await wRes.value.json(); setWatchlists(d.items||d.watchlist||[]); }} catch{}
     } catch {}
-    finally { setIsLoading(false); }
-  }, []);
+    finally { refreshInFlight.current = false; setIsLoading(false); }
+  }, [mt5Connected]);
 
   // Initial load
   useEffect(() => {
@@ -248,7 +323,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Periodic market data refresh
   useEffect(() => {
-    const interval = setInterval(() => refreshAllData(), 15_000);
+    const interval = setInterval(() => refreshAllData(false), 15_000);
     return () => clearInterval(interval);
   }, [refreshAllData]);
 
@@ -446,7 +521,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const res = await fetch("/api/trades", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(tradeData) });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(`MT5 order #${data.ticket || ""} placed on ${tradeData.symbol}!`, "success");
+        showToast(data.message || `MT5 order #${data.ticket || ""} placed on ${tradeData.symbol}!`, data.approvalMode === "technical_fallback" ? "info" : "success");
         await refreshAllData();
         return true;
       }
@@ -589,7 +664,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openTrades = trades.filter((t) => t.status === "OPEN");
-  const closedTrades = trades.filter((t) => t.status === "CLOSED");
+  const closedTrades = trades.filter((t) => t.status === "CLOSED" && t.executionType === "ai_autonomous");
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
 
   return (
@@ -647,6 +722,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsCreateStratModalOpen,
         mt5Connected,
         setMt5Connected,
+        priceScannerAutoEnabled,
+        setPriceScannerAutoEnabled,
+        priceScannerInterval,
+        setPriceScannerInterval,
         isDepositModalOpen,
         setIsDepositModalOpen,
       }}

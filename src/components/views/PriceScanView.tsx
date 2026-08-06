@@ -27,6 +27,7 @@ import {
 
 interface PriceFeedItem {
   symbol: string;
+  displaySymbol?: string;
   name: string;
   market: string;
   price: number;
@@ -70,12 +71,12 @@ interface AlertItem {
 }
 
 export const PriceScanView: React.FC = () => {
-  const { user, showToast, setOrderModalSymbol, setSelectedSymbol, setActiveTab, refreshAllData } = useApp();
+  const { user, showToast, setOrderModalSymbol, setSelectedSymbol, setActiveTab, refreshAllData,
+    priceScannerAutoEnabled: isAutoScanning, setPriceScannerAutoEnabled: setIsAutoScanning,
+    priceScannerInterval: scanInterval, setPriceScannerInterval: setScanInterval } = useApp();
 
   const [feedData, setFeedData] = useState<PriceFeedItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [isAutoScanning, setIsAutoScanning] = useState(false);
-  const [scanInterval, setScanInterval] = useState(3);
   const [lastScanTime, setLastScanTime] = useState<number | null>(null);
   const [scanCount, setScanCount] = useState(0);
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -84,7 +85,7 @@ export const PriceScanView: React.FC = () => {
   const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Alert form state
-  const [alertSymbol, setAlertSymbol] = useState("BTC/USDT");
+  const [alertSymbol, setAlertSymbol] = useState("BTCUSD");
   const [alertType, setAlertType] = useState("price_above");
   const [alertTargetValue, setAlertTargetValue] = useState("");
   const [isCreatingAlert, setIsCreatingAlert] = useState(false);
@@ -333,7 +334,7 @@ export const PriceScanView: React.FC = () => {
                           onClick={() => { setSelectedSymbol(item.symbol); setActiveTab("terminal"); }}
                           className="font-sans font-bold text-white hover:text-cyan-400 cursor-pointer"
                         >
-                          {item.symbol}
+                          {item.displaySymbol || item.symbol}
                         </div>
                         <span className="text-[10px] font-sans text-slate-500 capitalize">{item.market}</span>
                       </td>

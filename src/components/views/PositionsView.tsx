@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import { useApp, TradeItem } from "@/context/AppContext";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import {
@@ -27,8 +28,8 @@ export const PositionsView: React.FC = () => {
     setActiveTab,
   } = useApp();
 
-  const [viewTab, setViewTab] = useState<"open" | "closed">("open");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [viewTab, setViewTab] = usePersistentState<"open" | "closed">("positions_tab", "open");
+  const [searchQuery, setSearchQuery] = usePersistentState<string>("positions_search", "");
 
   const activeList = viewTab === "open" ? openTrades : closedTrades;
   const filteredList = activeList.filter(
@@ -104,7 +105,7 @@ export const PositionsView: React.FC = () => {
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            Closed History ({closedTrades.length})
+            AI Closed History ({closedTrades.length})
           </button>
         </div>
 
@@ -121,7 +122,9 @@ export const PositionsView: React.FC = () => {
       <div className="rounded-3xl bg-slate-900/90 border border-slate-800 overflow-hidden shadow-xl">
         {filteredList.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500 font-mono">
-            No {viewTab === "open" ? "active open positions" : "closed trade records"} matching your filter.
+            {viewTab === "open"
+              ? "No active open positions matching your filter."
+              : "No autonomous AI trades have closed yet. Open AI positions appear here after MT5 closes them."}
           </div>
         ) : (
           <div className="overflow-x-auto">

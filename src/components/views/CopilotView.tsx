@@ -95,7 +95,7 @@ export const CopilotView: React.FC = () => {
       weight: strat.weight || 30,
       minConfidence: strat.minConfidence || 75,
       stopLossPercent: strat.stopLossPercent || "2.00",
-      takeProfitPercent: strat.takeProfitPercent || "5.00",
+      takeProfitPercent: strat.takeProfitPercent || "0.60",
       trailingStop: strat.trailingStop !== false,
       aiPromptOrigin: strat.aiPromptOrigin,
     });

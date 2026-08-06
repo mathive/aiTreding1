@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { formatPercent } from "@/lib/utils";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import {
   Radar,
   Search,
@@ -28,11 +29,12 @@ export const MarketScannerView: React.FC = () => {
     isScanning,
   } = useApp();
 
-  const [marketFilter, setMarketFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"aiConfidence" | "change24h" | "volume">("aiConfidence");
+  const [marketFilter, setMarketFilter] = usePersistentState<string>("market_filter", "all");
+  const [searchQuery, setSearchQuery] = usePersistentState<string>("market_search", "");
+  const [sortBy, setSortBy] = usePersistentState<"aiConfidence" | "change24h" | "volume">("market_sort", "aiConfidence");
 
   const filteredAssets = marketAssets
+    .filter((a) => a.market !== "stocks" && a.aiConfidence >= 55)
     .filter((a) => (marketFilter === "all" ? true : a.market === marketFilter))
     .filter(
       (a) =>
@@ -67,7 +69,7 @@ export const MarketScannerView: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-white">Live AI Market Scanner</h1>
-              <p className="text-xs text-slate-400">Real-time technical indicators & AI confluence scoring across 12 instruments</p>
+              <p className="text-xs text-slate-400">Forex and crypto setups with AI Confluence of at least 55%</p>
             </div>
           </div>
         </div>
@@ -85,7 +87,7 @@ export const MarketScannerView: React.FC = () => {
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {["all", "crypto", "stocks", "forex"].map((m) => (
+          {["all", "crypto", "forex"].map((m) => (
             <button
               key={m}
               onClick={() => setMarketFilter(m)}
@@ -132,7 +134,7 @@ export const MarketScannerView: React.FC = () => {
                 <th className="py-3 px-4">Watch</th>
                 <th className="py-3 px-4">Asset</th>
                 <th className="py-3 px-4">Price (USD)</th>
-                <th className="py-3 px-4">24h Change</th>
+                <th className="py-3 px-4">15m Change</th>
                 <th className="py-3 px-4">RSI (14)</th>
                 <th className="py-3 px-4">EMA Alignment</th>
                 <th className="py-3 px-4">AI Confluence</th>
@@ -165,7 +167,7 @@ export const MarketScannerView: React.FC = () => {
                           }}
                           className="font-sans font-bold text-white hover:text-cyan-400 cursor-pointer"
                         >
-                          {asset.symbol}
+                          {asset.displaySymbol || asset.symbol}
                         </div>
                         <span className="text-[9px] uppercase font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-400">
                           {asset.market}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import {
   FlaskConical,
@@ -29,11 +30,11 @@ import {
 export const BacktestingView: React.FC = () => {
   const { strategies, marketAssets, updateBotConfig, showToast, setActiveTab } = useApp();
 
-  const [symbol, setSymbol] = useState<string>("BTC/USDT");
-  const [timeframe, setTimeframe] = useState<string>("1h");
-  const [dateRange, setDateRange] = useState<string>("90d");
-  const [initialCapital, setInitialCapital] = useState<number>(10000);
-  const [selectedStrategyIds, setSelectedStrategyIds] = useState<string[]>([
+  const [symbol, setSymbol] = usePersistentState<string>("backtest_symbol", "EURUSD");
+  const [timeframe, setTimeframe] = usePersistentState<string>("backtest_timeframe", "1h");
+  const [dateRange, setDateRange] = usePersistentState<string>("backtest_range", "90d");
+  const [initialCapital, setInitialCapital] = usePersistentState<number>("backtest_capital", 10000);
+  const [selectedStrategyIds, setSelectedStrategyIds] = usePersistentState<string[]>("backtest_strategies", [
     "strat_breakout_momentum",
     "strat_neural_trend_pulse",
   ]);

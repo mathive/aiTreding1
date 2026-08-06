@@ -61,7 +61,7 @@ export const Sidebar: React.FC = () => {
       id: "scanner",
       label: "Market Scanner",
       icon: Radar,
-      badge: "12 PAIRS",
+      badge: "20 ASSETS",
       badgeColor: "bg-slate-800 text-slate-300 border-slate-700",
     },
     {
@@ -115,7 +115,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-800/80 bg-slate-950 flex flex-col justify-between shrink-0 h-[calc(100vh-4rem)] sticky top-16 select-none overflow-y-auto">
+    <aside className="w-64 h-full min-h-0 border-r border-slate-800/80 bg-slate-950 flex flex-col justify-between shrink-0 select-none overflow-y-auto overscroll-contain">
       <div className="p-3 space-y-1">
         <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
           Trading Systems
@@ -176,7 +176,7 @@ export const Sidebar: React.FC = () => {
 
         <div className="text-[10px] text-slate-400 leading-relaxed">
           {botConfig?.isActive && user?.autoTradingEnabled
-            ? `Autonomously scanning 12 markets. Threshold: ≥${botConfig?.confluenceThreshold}% confluence.`
+            ? `Autonomously scanning 20 selected markets. Threshold: ≥${botConfig?.confluenceThreshold}% confluence.`
             : `Auto-trading is paused. Trades require manual one-click approval.`}
         </div>
 

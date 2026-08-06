@@ -25,13 +25,20 @@ export const TradeOrderModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const asset = marketAssets.find((a) => a.symbol === orderModalSymbol) || marketAssets[0];
+  const signalQualified = Boolean((asset as any)?.tradeEligible && asset?.aiConfidence >= 80 && ((asset as any)?.alignmentCount ?? 0) >= 3);
+  const signalSide: "BUY" | "SELL" | null = signalQualified && asset?.trendStatus.includes("BUY")
+    ? "BUY" : signalQualified && asset?.trendStatus.includes("SELL") ? "SELL" : null;
 
   useEffect(() => {
     if (asset) {
+      if (signalSide && tradeType !== signalSide) {
+        setTradeType(signalSide);
+        return;
+      }
       const price = asset.currentPrice;
       const isLong = tradeType === "BUY";
-      const sl = isLong ? price * 0.98 : price * 1.02;
-      const tp = isLong ? price * 1.055 : price * 0.945;
+      const sl = (asset as any).recommendedStopLoss ?? (isLong ? price * 0.998 : price * 1.002);
+      const tp = (asset as any).recommendedTakeProfit ?? (isLong ? price * 1.006 : price * 0.994);
       setStopLoss(sl.toFixed(price < 10 ? 4 : 2));
       setTakeProfit(tp.toFixed(price < 10 ? 4 : 2));
       setLeverage(asset.recommendedLeverage || 5);
@@ -41,7 +48,7 @@ export const TradeOrderModal: React.FC = () => {
         setSelectedStrategy(strategies[0].name);
       }
     }
-  }, [orderModalSymbol, tradeType, asset]);
+  }, [orderModalSymbol, tradeType, asset, signalSide]);
 
   if (!orderModalSymbol || !asset) return null;
 
@@ -49,8 +56,8 @@ export const TradeOrderModal: React.FC = () => {
   const positionSize = amount * leverage;
   const quantity = positionSize / currentPrice;
 
-  const slPrice = parseFloat(stopLoss) || currentPrice * 0.98;
-  const tpPrice = parseFloat(takeProfit) || currentPrice * 1.055;
+  const slPrice = parseFloat(stopLoss) || (tradeType === "BUY" ? currentPrice * 0.998 : currentPrice * 1.002);
+  const tpPrice = parseFloat(takeProfit) || (tradeType === "BUY" ? currentPrice * 1.006 : currentPrice * 0.994);
 
   const potentialLoss = Math.abs(((currentPrice - slPrice) / currentPrice) * positionSize);
   const potentialGain = Math.abs(((tpPrice - currentPrice) / currentPrice) * positionSize);
@@ -58,6 +65,7 @@ export const TradeOrderModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signalSide || tradeType !== signalSide) return;
     setIsSubmitting(true);
 
     const success = await executeTrade({
@@ -92,7 +100,7 @@ export const TradeOrderModal: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">{asset.symbol}</h3>
+                <h3 className="text-base font-bold text-white">{asset.displaySymbol || asset.symbol}</h3>
                 <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
                   {asset.market}
                 </span>
@@ -118,11 +126,12 @@ export const TradeOrderModal: React.FC = () => {
           <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
             <button
               type="button"
-              onClick={() => setTradeType("BUY")}
+              onClick={() => signalSide === "BUY" && setTradeType("BUY")}
+              disabled={signalSide !== "BUY"}
               className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                tradeType === "BUY"
+                tradeType === "BUY" && signalSide === "BUY"
                   ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
-                  : "text-slate-400 hover:text-white"
+                  : "text-slate-600 cursor-not-allowed opacity-50"
               }`}
             >
               <TrendingUp className="w-4 h-4" />
@@ -130,11 +139,12 @@ export const TradeOrderModal: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setTradeType("SELL")}
+              onClick={() => signalSide === "SELL" && setTradeType("SELL")}
+              disabled={signalSide !== "SELL"}
               className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                tradeType === "SELL"
+                tradeType === "SELL" && signalSide === "SELL"
                   ? "bg-rose-600 text-white shadow-lg shadow-rose-600/30"
-                  : "text-slate-400 hover:text-white"
+                  : "text-slate-600 cursor-not-allowed opacity-50"
               }`}
             >
               <TrendingDown className="w-4 h-4" />
@@ -254,7 +264,7 @@ export const TradeOrderModal: React.FC = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !signalSide}
             className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-xl transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 ${
               tradeType === "BUY"
                 ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-950/60"
@@ -264,6 +274,7 @@ export const TradeOrderModal: React.FC = () => {
             <Sparkles className="w-4 h-4" />
             {isSubmitting
               ? "Executing Order..."
+              : !signalSide ? "No Trade — Neutral Signal"
               : `Execute ${tradeType} on ${asset.symbol} (${formatCurrency(positionSize)})`}
           </button>
         </form>

@@ -4,6 +4,7 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  traderType: text("trader_type").default("day_trader"),
   email: text("email").notNull().unique(),
   balance: text("balance").default("0"),
   initialBalance: text("initial_balance").default("0"),
@@ -85,6 +86,44 @@ export const backtests = sqliteTable("backtests", {
   equityCurve: text("equity_curve", { mode: "json" }).$type<any>().notNull(),
   tradeLogs: text("trade_logs", { mode: "json" }).$type<any>().notNull(),
   createdAt: text("created_at").default(""),
+});
+
+export const botStates = sqliteTable("bot_states", {
+  id: text("id").primaryKey(),
+  config: text("config", { mode: "json" }).$type<Record<string, any>>().notNull(),
+  updatedAt: text("updated_at").default(""),
+});
+
+export const priceAlerts = sqliteTable("price_alerts", {
+  id: text("id").primaryKey(), userId: text("user_id").notNull(),
+  symbol: text("symbol").notNull(), name: text("name").notNull(), market: text("market").notNull(),
+  alertType: text("alert_type").notNull(), targetValue: text("target_value").notNull(),
+  currentValue: text("current_value"), isActive: integer("is_active", { mode: "boolean" }).default(true),
+  isTriggered: integer("is_triggered", { mode: "boolean" }).default(false), triggeredAt: text("triggered_at"),
+  createdAt: text("created_at").default(""), updatedAt: text("updated_at").default(""),
+});
+
+export const aiTradeDecisions = sqliteTable("ai_trade_decisions", {
+  id: text("id").primaryKey(), symbol: text("symbol").notNull(), direction: text("direction").notNull(),
+  verdict: text("verdict").notNull(), confidence: integer("confidence").notNull(), reason: text("reason").notNull(),
+  riskFlags: text("risk_flags", { mode: "json" }).$type<string[]>().notNull(),
+  technicalConfidence: integer("technical_confidence").notNull(), model: text("model").notNull(),
+  executed: integer("executed", { mode: "boolean" }).default(false), orderTicket: text("order_ticket"),
+  createdAt: text("created_at").default(""), updatedAt: text("updated_at").default(""),
+});
+
+export const watchlists = sqliteTable("watchlists", {
+  id: text("id").primaryKey(), userId: text("user_id").notNull(),
+  symbol: text("symbol").notNull(), name: text("name").notNull(), market: text("market").notNull(),
+  alertHigh: text("alert_high"), alertLow: text("alert_low"), aiSentiment: text("ai_sentiment").default("NEUTRAL"),
+  aiScore: integer("ai_score").default(0), favorite: integer("favorite", { mode: "boolean" }).default(false),
+  notes: text("notes"), createdAt: text("created_at").default(""), updatedAt: text("updated_at").default(""),
+});
+
+export const botScanRuns = sqliteTable("bot_scan_runs", {
+  id: text("id").primaryKey(), candleTime: text("candle_time").notNull(),
+  targetSymbol: text("target_symbol"), status: text("status").notNull().default("claimed"),
+  createdAt: text("created_at").default(""), completedAt: text("completed_at"),
 });
 
 export type User = typeof users.$inferSelect;

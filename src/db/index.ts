@@ -10,6 +10,7 @@ sqlite.pragma("foreign_keys = ON");
 sqlite.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
+  trader_type TEXT DEFAULT 'day_trader',
   balance TEXT DEFAULT '0', initial_balance TEXT DEFAULT '0',
   currency TEXT DEFAULT 'USD', risk_mode TEXT DEFAULT 'moderate',
   max_daily_loss TEXT DEFAULT '0', max_leverage INTEGER DEFAULT 500,
@@ -59,7 +60,40 @@ CREATE TABLE IF NOT EXISTS backtests (
   equity_curve TEXT NOT NULL, trade_logs TEXT NOT NULL,
   created_at TEXT DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS bot_states (
+  id TEXT PRIMARY KEY, config TEXT NOT NULL, updated_at TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS price_alerts (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, symbol TEXT NOT NULL,
+  name TEXT NOT NULL, market TEXT NOT NULL, alert_type TEXT NOT NULL,
+  target_value TEXT NOT NULL, current_value TEXT, is_active INTEGER DEFAULT 1,
+  is_triggered INTEGER DEFAULT 0, triggered_at TEXT,
+  created_at TEXT DEFAULT '', updated_at TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS ai_trade_decisions (
+  id TEXT PRIMARY KEY, symbol TEXT NOT NULL, direction TEXT NOT NULL,
+  verdict TEXT NOT NULL, confidence INTEGER NOT NULL, reason TEXT NOT NULL,
+  risk_flags TEXT NOT NULL, technical_confidence INTEGER NOT NULL, model TEXT NOT NULL,
+  executed INTEGER DEFAULT 0, order_ticket TEXT, created_at TEXT DEFAULT '', updated_at TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS watchlists (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, symbol TEXT NOT NULL,
+  name TEXT NOT NULL, market TEXT NOT NULL, alert_high TEXT, alert_low TEXT,
+  ai_sentiment TEXT DEFAULT 'NEUTRAL', ai_score INTEGER DEFAULT 0,
+  favorite INTEGER DEFAULT 0, notes TEXT,
+  created_at TEXT DEFAULT '', updated_at TEXT DEFAULT '',
+  UNIQUE(user_id, symbol)
+);
+CREATE TABLE IF NOT EXISTS bot_scan_runs (
+  id TEXT PRIMARY KEY, candle_time TEXT NOT NULL, target_symbol TEXT,
+  status TEXT NOT NULL DEFAULT 'claimed', created_at TEXT DEFAULT '', completed_at TEXT
+);
 `);
+
+const userColumns = sqlite.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+if (!userColumns.some((column) => column.name === "trader_type")) {
+  sqlite.exec("ALTER TABLE users ADD COLUMN trader_type TEXT DEFAULT 'day_trader'");
+}
 
 import { drizzle } from "drizzle-orm/better-sqlite3";
 export const db = drizzle(sqlite);

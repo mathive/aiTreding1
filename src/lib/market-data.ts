@@ -1,5 +1,6 @@
 export interface MarketAsset {
   symbol: string;
+  displaySymbol?: string;
   name: string;
   market: "crypto" | "stocks" | "forex";
   currentPrice: number;

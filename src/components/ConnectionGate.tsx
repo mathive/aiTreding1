@@ -12,7 +12,24 @@ export const ConnectionGate: React.FC<Props> = ({ onConnected }) => {
   const [error, setError] = useState("");
   const [stored, setStored] = useState<any[]>([]);
 
-  useEffect(() => { fetch("/api/mt5/accounts").then(r=>r.json()).then(d=>Array.isArray(d)&&setStored(d)).catch(()=>{}); }, []);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/mt5/accounts").then(r=>r.json()).then(d=>active&&Array.isArray(d)&&setStored(d)).catch(()=>{});
+    // Restore an existing bridge/terminal session after a browser refresh.
+    (async () => {
+      try {
+        const accountResponse = await fetch("/api/mt5/account", { cache: "no-store" });
+        if (!accountResponse.ok || !active) return;
+        const account = await accountResponse.json();
+        const bootstrapResponse = await fetch("/api/bootstrap", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountName: account.name, accountBalance: account.balance }),
+        });
+        if (bootstrapResponse.ok && active) onConnected(await bootstrapResponse.json());
+      } catch { /* Manual login remains available when the bridge is offline. */ }
+    })();
+    return () => { active = false; };
+  }, [onConnected]);
 
   const connect = async () => {
     if (!login || !pwd) { setError("Enter MT5 login and password."); return; }
