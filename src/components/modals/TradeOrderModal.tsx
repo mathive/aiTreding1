@@ -16,8 +16,7 @@ export const TradeOrderModal: React.FC = () => {
   } = useApp();
 
   const [tradeType, setTradeType] = useState<"BUY" | "SELL">("BUY");
-  const minLot = (asset as any)?.volumeMin ?? 0.01;
-  const [amount, setAmount] = useState<number>(minLot);
+  const [amount, setAmount] = useState<number>(0.01);
   const [leverage, setLeverage] = useState<number>(5);
   const [stopLoss, setStopLoss] = useState<string>("");
   const [takeProfit, setTakeProfit] = useState<string>("");

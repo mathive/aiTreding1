@@ -50,8 +50,7 @@ export const TerminalChartView: React.FC = () => {
 
   // Order placement state
   const [orderType, setOrderType] = useState<"BUY" | "SELL">("BUY");
-  const minVol = (asset as any)?.volumeMin ?? 0.01;
-  const [tradeAmount, setTradeAmount] = useState<number>(minVol);
+  const [tradeAmount, setTradeAmount] = useState<number>(0.01);
   const [leverage, setLeverage] = useState<number>(5);
   const [stopLoss, setStopLoss] = useState<string>("");
   const [takeProfit, setTakeProfit] = useState<string>("");
