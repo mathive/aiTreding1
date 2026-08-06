@@ -1,14 +1,21 @@
-import { cookies } from "next/headers";
-const UID = "user_default";
-
+// Minimal auth — no DB dependency. Everything comes from MT5.
 export async function getCurrentUser() {
-  const cookie = (await cookies()).get("nexus_user_id")?.value || UID;
-  const { db } = await import("@/db");
-  const { users } = await import("@/db/schema");
-  const { eq } = await import("drizzle-orm");
-  const r = await db.select().from(users).where(eq(users.id, cookie)).limit(1);
-  if (r.length > 0) return r[0];
-  // Auto-create minimal user on first access
-  const [u] = await db.insert(users).values({ id: cookie, name: "Trader", email: "trader@localhost", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).returning();
-  return u;
+  return {
+    id: "default",
+    name: "Trader",
+    email: "trader@localhost",
+    balance: "0",
+    initialBalance: "0",
+    currency: "USD",
+    riskMode: "moderate",
+    maxDailyLoss: "0",
+    maxLeverage: 500,
+    autoTradingEnabled: true,
+    soundEffects: true,
+    theme: "dark",
+    apiKeySimulation: false,
+    tradingMode: "live",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
