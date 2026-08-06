@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      user: { id: "default", name: act?.name || body.accountName || "Trader", email: "trader@localhost", balance: String(bal), initialBalance: String(bal), currency: act?.currency || "USD", maxLeverage: act?.leverage || 500, tradingMode: "live" },
+      user: { id: "default", name: act?.name || body.accountName || "Trader", email: "trader@localhost", balance: String(bal), initialBalance: String(bal), currency: act?.currency || "USD", maxLeverage: act?.leverage || 500, tradingMode: "live", autoTradingEnabled: true, soundEffects: true, apiKeySimulation: false, traderType: "day_trader", riskMode: "moderate" },
       positions: Array.isArray(pos) ? pos.map((p: any) => ({ ticket: p.ticket, symbol: p.symbol, type: p.type, volume: p.volume, openPrice: p.open_price, currentPrice: p.current_price, profit: p.profit, swap: p.swap, sl: p.sl, tp: p.tp, openTime: p.open_time })) : [],
       symbols: Array.isArray(sym) ? sym.map((s: any) => ({ name: s.name, volumeMin: s.volume_min ?? 0.01, volumeStep: s.volume_step ?? 0.01 })) : [],
     });

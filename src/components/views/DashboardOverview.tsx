@@ -47,7 +47,7 @@ export const DashboardOverview: React.FC = () => {
   const winRate =
     closedTrades.length > 0
       ? ((winningClosed / closedTrades.length) * 100).toFixed(1)
-      : "72.4";
+      : "0";
 
   // Top trending assets sorted by AI confidence
   const topTrending = [...marketAssets].sort((a, b) => b.aiConfidence - a.aiConfidence).slice(0, 4);

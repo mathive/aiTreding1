@@ -106,7 +106,7 @@ export const AutonomousBotView: React.FC = () => {
                 : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-950/80"
             }`}
           >
-            {botConfig?.isActive && user?.autoTradingEnabled ? (
+            {botConfig?.isActive ? (
               <>
                 <Pause className="w-4 h-4" />
                 Auto-Trade: ACTIVE
@@ -370,7 +370,7 @@ export const AutonomousBotView: React.FC = () => {
             <Activity className="w-4 h-4 text-cyan-400" />
             <h3 className="text-base font-bold text-white">Autonomous AI Execution Log ({botTrades.length})</h3>
           </div>
-          <span className="text-xs text-slate-400 font-mono">Total Bot PnL: <strong className="text-emerald-400">+$8,240.50</strong></span>
+          <span className="text-xs text-slate-400 font-mono">Total Bot PnL: <strong className="text-emerald-400">$0.00</strong></span>
         </div>
 
         {botTrades.length === 0 ? (

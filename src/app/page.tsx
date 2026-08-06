@@ -38,18 +38,18 @@ function MainContent() {
         id: "mt5_"+p.ticket, userId:"default", symbol:p.symbol, market:"forex",
         type:p.type||"BUY", status:"OPEN", entryPrice:String(p.openPrice||0),
         currentPrice:String(p.currentPrice||0), quantity:String(p.volume||0),
-        amount:String((p.volume||0)*(p.openPrice||0)), leverage:0,
+        amount:String((p.volume||0)*(p.openPrice||0)), leverage:100,
         stopLoss:p.sl?String(p.sl):null, takeProfit:p.tp?String(p.tp):null,
         trailingStop:false, pnl:String(p.profit||0),
-        pnlPercent:p.currentPrice&&p.openPrice?String(((p.currentPrice-p.openPrice)/(p.openPrice)*100).toFixed(2)):"0",
+        pnlPercent:p.currentPrice&&p.openPrice?String(((p.currentPrice-p.openPrice)/p.openPrice*100*100).toFixed(2)):"0",
         strategyUsed:"MT5 Position",aiConfidence:50,aiReasoning:"Live MT5 position",
         executionType:"mt5",entryTime:String(p.openTime||new Date().toISOString()),
       })));
     }
     setStrategies([
-      {id:"s1",userId:"default",name:"Trend Following",description:"Follow market trends using EMA crossovers",category:"trend_follow",traderTypeMatch:"all",timeframes:["1h","4h"],indicators:{},targetAssets:["EUR/USD","GBP/USD","XAU/USD"],weight:40,minConfidence:70,stopLossPercent:"2.00",takeProfitPercent:"5.00",trailingStop:true,isActive:true,winRate:"65",totalTradesCount:0,profitFactor:"0"},
-      {id:"s2",userId:"default",name:"Breakout Scalper",description:"Breakout on 5m/15m charts",category:"breakout",traderTypeMatch:"scalper",timeframes:["5m","15m"],indicators:{},targetAssets:["EUR/USD","GBP/USD"],weight:30,minConfidence:75,stopLossPercent:"1.50",takeProfitPercent:"3.00",trailingStop:true,isActive:true,winRate:"62",totalTradesCount:0,profitFactor:"0"},
-      {id:"s3",userId:"default",name:"Mean Reversion",description:"Buy dips sell rips",category:"mean_reversion",traderTypeMatch:"swing_trader",timeframes:["15m","1h"],indicators:{},targetAssets:["XAU/USD","EUR/USD"],weight:30,minConfidence:72,stopLossPercent:"1.80",takeProfitPercent:"4.00",trailingStop:false,isActive:false,winRate:"58",totalTradesCount:0,profitFactor:"0"},
+      {id:"s1",userId:"default",name:"Trend Following",description:"Follow market trends using EMA crossovers",category:"trend_follow",traderTypeMatch:"all",timeframes:["1h","4h"],indicators:{},targetAssets:["EUR/USD","GBP/USD","XAU/USD"],weight:40,minConfidence:70,stopLossPercent:"2.00",takeProfitPercent:"5.00",trailingStop:true,isActive:true,winRate:"0",totalTradesCount:0,profitFactor:"0"},
+      {id:"s2",userId:"default",name:"Breakout Scalper",description:"Breakout on 5m/15m charts",category:"breakout",traderTypeMatch:"scalper",timeframes:["5m","15m"],indicators:{},targetAssets:["EUR/USD","GBP/USD"],weight:30,minConfidence:75,stopLossPercent:"1.50",takeProfitPercent:"3.00",trailingStop:true,isActive:true,winRate:"0",totalTradesCount:0,profitFactor:"0"},
+      {id:"s3",userId:"default",name:"Mean Reversion",description:"Buy dips sell rips",category:"mean_reversion",traderTypeMatch:"swing_trader",timeframes:["15m","1h"],indicators:{},targetAssets:["XAU/USD","EUR/USD"],weight:30,minConfidence:72,stopLossPercent:"1.80",takeProfitPercent:"4.00",trailingStop:false,isActive:false,winRate:"0",totalTradesCount:0,profitFactor:"0"},
     ]);
     await refreshAllData?.();
     setTimeout(async () => { await refreshAllData?.(); setSyncing(false); }, 1500);
