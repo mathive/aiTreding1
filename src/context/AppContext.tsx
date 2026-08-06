@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { MarketAsset, INITIAL_ASSETS } from "@/lib/market-data";
+import { MarketAsset } from "@/lib/market-data";
 import { formatCurrency, playSound } from "@/lib/utils";
 
 export interface UserAccount {
@@ -181,7 +181,9 @@ interface AppContextType {
   markAllNotificationsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
 
-  // Modal triggers
+  // MT5 bridge state
+  mt5Connected: boolean;
+  setMt5Connected: (v: boolean) => void;
   orderModalSymbol: string | null;
   setOrderModalSymbol: (symbol: string | null) => void;
   editTradeModalItem: TradeItem | null;
@@ -201,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [strategies, setStrategies] = useState<StrategyItem[]>([]);
   const [botConfig, setBotConfig] = useState<BotConfigItem | null>(null);
   const [trades, setTrades] = useState<TradeItem[]>([]);
-  const [marketAssets, setMarketAssets] = useState<MarketAsset[]>(INITIAL_ASSETS);
+  const [marketAssets, setMarketAssets] = useState<MarketAsset[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [watchlists, setWatchlists] = useState<WatchlistItem[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USDT");
@@ -214,6 +216,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [editTradeModalItem, setEditTradeModalItem] = useState<TradeItem | null>(null);
   const [isCreateStratModalOpen, setIsCreateStratModalOpen] = useState<boolean>(false);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState<boolean>(false);
+  const [mt5Connected, setMt5Connected] = useState<boolean>(false);
 
   const showToast = useCallback((text: string, type: "success" | "error" | "info" = "success") => {
     setToastMessage({ text, type });
@@ -243,7 +246,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const botRes = await fetch("/api/bot");
       if (botRes.ok) {
         const botData = await botRes.json();
-        setBotConfig(botData.bot || null);
+        setBotConfig(botData.bot?.isActive !== undefined ? botData.bot : null);
       }
 
       // Fetch trades
@@ -257,7 +260,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const marketRes = await fetch("/api/market");
       if (marketRes.ok) {
         const marketData = await marketRes.json();
-        setMarketAssets(marketData.assets || INITIAL_ASSETS);
+        setMarketAssets(marketData.assets || []);
       }
 
       // Fetch notifications
@@ -285,55 +288,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshAllData();
   }, [refreshAllData]);
 
-  // Periodic simulated market price tick & automated PnL calculation
+  // Periodic LIVE market price tick via real API polling
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMarketAssets((prevAssets) =>
-        prevAssets.map((asset) => {
-          const deltaPct = (Math.random() - 0.49) * 0.003;
-          const newPrice = Number((asset.currentPrice * (1 + deltaPct)).toFixed(4));
-          const newHigh = Math.max(asset.high24h, newPrice);
-          const newLow = Math.min(asset.low24h, newPrice);
-          return {
-            ...asset,
-            currentPrice: newPrice,
-            high24h: newHigh,
-            low24h: newLow,
-          };
-        })
-      );
-
-      // Update open positions live PnL in state optimistically
-      setTrades((prevTrades) =>
-        prevTrades.map((trade) => {
-          if (trade.status !== "OPEN") return trade;
-          const liveAsset = marketAssets.find((a) => a.symbol === trade.symbol);
-          if (!liveAsset) return trade;
-
-          const currentPrice = liveAsset.currentPrice;
-          const entryPrice = Number(trade.entryPrice);
-          const leverage = trade.leverage || 1;
-          const amount = Number(trade.amount);
-
-          let pnlPercent = 0;
-          if (trade.type === "BUY") {
-            pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100 * leverage;
-          } else {
-            pnlPercent = ((entryPrice - currentPrice) / entryPrice) * 100 * leverage;
+    let isMounted = true;
+    async function tick() {
+      try {
+        const marketRes = await fetch("/api/market");
+        if (marketRes.ok && isMounted) {
+          const marketData = await marketRes.json();
+          if (marketData.assets && marketData.assets.length > 0) {
+            setMarketAssets(marketData.assets);
           }
-          const pnl = (amount * pnlPercent) / 100;
+        }
+      } catch {}
+    }
+    tick();
+    const interval = setInterval(tick, 15_000);
+    return () => { isMounted = false; clearInterval(interval); };
+  }, []);
 
-          return {
-            ...trade,
-            currentPrice: String(currentPrice.toFixed(4)),
-            pnl: String(pnl.toFixed(2)),
-            pnlPercent: String(pnlPercent.toFixed(2)),
-          };
-        })
-      );
-    }, 4000);
-
-    return () => clearInterval(interval);
+  // Update open positions live PnL whenever market prices change
+  useEffect(() => {
+    if (marketAssets.length === 0) return;
+    setTrades((prevTrades) =>
+      prevTrades.map((trade) => {
+        if (trade.status !== "OPEN") return trade;
+        const liveAsset = marketAssets.find((a) => a.symbol === trade.symbol);
+        if (!liveAsset) return trade;
+        const currentPrice = liveAsset.currentPrice;
+        const entryPrice = Number(trade.entryPrice);
+        const leverage = trade.leverage || 1;
+        const amount = Number(trade.amount);
+        let pnlPercent = 0;
+        if (trade.type === "BUY") pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100 * leverage;
+        else pnlPercent = ((entryPrice - currentPrice) / entryPrice) * 100 * leverage;
+        const pnl = (amount * pnlPercent) / 100;
+        return { ...trade, currentPrice: String(currentPrice.toFixed(4)), pnl: String(pnl.toFixed(2)), pnlPercent: String(pnlPercent.toFixed(2)) };
+      })
+    );
   }, [marketAssets]);
 
   // Periodic autonomous AI Bot scan cycle (every 45 seconds if bot is active)
@@ -759,6 +751,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setEditTradeModalItem,
         isCreateStratModalOpen,
         setIsCreateStratModalOpen,
+        mt5Connected,
+        setMt5Connected,
         isDepositModalOpen,
         setIsDepositModalOpen,
       }}
