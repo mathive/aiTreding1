@@ -225,15 +225,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const refreshAllData = useCallback(async () => {
     try {
-      const [userRes, tradesRes, marketRes] = await Promise.all([
-        fetch("/api/users"),
-        fetch("/api/trades"),
-        fetch("/api/market"),
+      const [uRes, tRes, mRes] = await Promise.allSettled([
+        fetch("/api/users"), fetch("/api/trades"), fetch("/api/market")
       ]);
-      if (userRes.ok) { const d = await userRes.json(); setUser(d.user); setAvailableUsers(d.availableUsers || []); }
-      if (tradesRes.ok) { const d = await tradesRes.json(); setTrades(d.trades || []); }
-      if (marketRes.ok) { const d = await marketRes.json(); setMarketAssets(d.assets || []); }
-    } catch (err) { console.error(err); }
+      try { if (uRes.status==="fulfilled" && uRes.value.ok) { const d=await uRes.value.json(); setUser(d.user); setAvailableUsers(d.availableUsers||[]); }} catch{}
+      try { if (tRes.status==="fulfilled" && tRes.value.ok) { const d=await tRes.value.json(); setTrades(d.trades||[]); }} catch{}
+      try { if (mRes.status==="fulfilled" && mRes.value.ok) { const d=await mRes.value.json(); setMarketAssets(d.assets||[]); }} catch{}
+    } catch {}
     finally { setIsLoading(false); }
   }, []);
 
@@ -242,72 +240,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshAllData();
   }, [refreshAllData]);
 
-  // Periodic LIVE market price tick via real API polling
+  // Periodic market data refresh
   useEffect(() => {
-    let isMounted = true;
-    async function tick() {
-      try {
-        const marketRes = await fetch("/api/market");
-        if (marketRes.ok && isMounted) {
-          const marketData = await marketRes.json();
-          if (marketData.assets && marketData.assets.length > 0) {
-            setMarketAssets(marketData.assets);
-          }
-        }
-      } catch {}
-    }
-    tick();
-    const interval = setInterval(tick, 15_000);
-    return () => { isMounted = false; clearInterval(interval); };
-  }, []);
+    const interval = setInterval(() => refreshAllData(), 15_000);
+    return () => clearInterval(interval);
+  }, [refreshAllData]);
 
-  // Update open positions live PnL whenever market prices change
-  useEffect(() => {
-    if (marketAssets.length === 0) return;
-    setTrades((prevTrades) =>
-      prevTrades.map((trade) => {
-        if (trade.status !== "OPEN") return trade;
-        const liveAsset = marketAssets.find((a) => a.symbol === trade.symbol);
-        if (!liveAsset) return trade;
-        const currentPrice = liveAsset.currentPrice;
-        const entryPrice = Number(trade.entryPrice);
-        const leverage = trade.leverage || 1;
-        const amount = Number(trade.amount);
-        let pnlPercent = 0;
-        if (trade.type === "BUY") pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100 * leverage;
-        else pnlPercent = ((entryPrice - currentPrice) / entryPrice) * 100 * leverage;
-        const pnl = (amount * pnlPercent) / 100;
-        return { ...trade, currentPrice: String(currentPrice.toFixed(4)), pnl: String(pnl.toFixed(2)), pnlPercent: String(pnlPercent.toFixed(2)) };
-      })
-    );
-  }, [marketAssets]);
-
-  // Periodic autonomous AI Bot scan cycle (every 45 seconds if bot is active)
-  useEffect(() => {
-    if (!botConfig?.isActive || !user?.autoTradingEnabled) return;
-
-    const botInterval = setInterval(async () => {
-      try {
-        const res = await fetch("/api/bot/scan-and-trade", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ forceExecute: false }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.newTradesCount > 0) {
-            if (user?.soundEffects) playSound("buy");
-            showToast(`🤖 AI Bot Auto-Executed ${data.newTradesCount} high-confluence trade(s)!`, "success");
-            refreshAllData();
-          }
-        }
-      } catch {
-        // Ignore background fetch error
-      }
-    }, 45000);
-
-    return () => clearInterval(botInterval);
-  }, [botConfig?.isActive, user?.autoTradingEnabled, user?.soundEffects, showToast, refreshAllData]);
 
   // User Actions
   const switchUser = async (userId: string) => {
