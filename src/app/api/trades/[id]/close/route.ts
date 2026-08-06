@@ -15,6 +15,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const [trade] = await db.select().from(trades).where(eq(trades.id, id)).limit(1);
     if (!trade) return NextResponse.json({ error: "Trade not found" }, { status: 404 });
     if (trade.status !== "OPEN") return NextResponse.json({ error: "Trade is not open" }, { status: 400 });
+    // Close on MT5 if this is an MT5 trade
+    const B2 = process.env.MT5_BRIDGE_URL || "http://localhost:8000";
+    if (id.startsWith("trade_mt5_")) {
+      try {
+        const mt5Ticket = parseInt(id.replace("trade_mt5_", ""), 10);
+        if (mt5Ticket) {
+          const vol = trade.quantity ? Number(trade.quantity) * (closePercent / 100) : undefined;
+          await fetch(`${B2}/close/${mt5Ticket}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket: mt5Ticket, volume: vol }) });
+        }
+      } catch {}
+    }
     let exitPrice = customExitPrice ? Number(customExitPrice) : Number(trade.currentPrice);
     try { const liveTickers = await getLiveTickers(); const asset = liveTickers.find((a) => a.symbol === trade.symbol); if (asset && !customExitPrice) exitPrice = asset.currentPrice; } catch {}
     const entryPrice = Number(trade.entryPrice);

@@ -249,8 +249,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setBotConfig(botData.bot?.isActive !== undefined ? botData.bot : null);
       }
 
-      // Fetch trades
-      const tradesRes = await fetch("/api/trades");
+      // Fetch trades — sync from MT5 for live positions
+      const tradesRes = await fetch("/api/trades?sync=mt5");
       if (tradesRes.ok) {
         const tradesData = await tradesRes.json();
         setTrades(tradesData.trades || []);
