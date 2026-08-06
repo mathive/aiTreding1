@@ -11,7 +11,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const updatePayload: Record<string, any> = { updatedAt: new Date() };
+    const updatePayload: Record<string, any> = { updatedAt: new Date().toISOString() };
 
     if (body.label !== undefined) updatePayload.label = body.label;
     if (body.isActive !== undefined) updatePayload.isActive = Boolean(body.isActive);
@@ -24,7 +24,7 @@ export async function PATCH(
       const latency = Math.floor(10 + Math.random() * 45);
       updatePayload.connectionStatus = "connected";
       updatePayload.lastPingMs = latency;
-      updatePayload.lastConnectedAt = new Date();
+      updatePayload.lastConnectedAt = new Date().toISOString();
       updatePayload.lastError = null;
     }
 

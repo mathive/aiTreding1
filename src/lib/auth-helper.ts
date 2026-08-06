@@ -1,45 +1,49 @@
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { DEMO_USER_ID, seedDatabaseIfEmpty } from "./seed";
 import { cookies } from "next/headers";
 
-export async function getCurrentUser() {
-  await seedDatabaseIfEmpty();
+const DEFAULT_USER_ID = "user_default";
 
-  const cookieStore = await cookies();
-  const userIdCookie = cookieStore.get("nexus_user_id")?.value;
-  const targetId = userIdCookie || DEMO_USER_ID;
+async function ensureMinimalUser() {
+  const { db } = await import("@/db");
+  const { users } = await import("@/db/schema");
+  const { eq } = await import("drizzle-orm");
 
-  let user = await db.select().from(users).where(eq(users.id, targetId)).limit(1);
+  const existing = await db.select().from(users).where(eq(users.id, DEFAULT_USER_ID)).limit(1);
+  if (existing.length > 0) return existing[0];
 
-  if (user.length === 0) {
-    user = await db.select().from(users).where(eq(users.id, DEMO_USER_ID)).limit(1);
-  }
-
-  if (user.length > 0) {
-    return user[0];
-  }
-
-  // If still empty, return fallback
-  return {
-    id: DEMO_USER_ID,
-    name: "Alex Vance",
-    email: "alex.vance@nexustrader.ai",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    role: "pro_trader",
+  // Create one minimal user — no demo data, zero balance
+  const [newUser] = await db.insert(users).values({
+    id: DEFAULT_USER_ID,
+    name: "Trader",
+    email: "trader@localhost",
     traderType: "day_trader",
-    balance: "58240.50",
-    initialBalance: "50000.00",
+    balance: "0.00",
+    initialBalance: "0.00",
     currency: "USD",
     riskMode: "moderate",
-    maxDailyLoss: "2500.00",
+    maxDailyLoss: "0.00",
     maxLeverage: 10,
-    autoTradingEnabled: true,
+    autoTradingEnabled: false,
     soundEffects: true,
     theme: "dark",
-    apiKeySimulation: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+    apiKeySimulation: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }).returning();
+  return newUser;
+}
+
+export async function getCurrentUser() {
+  const cookieStore = await cookies();
+  const userIdCookie = cookieStore.get("nexus_user_id")?.value;
+  const targetId = userIdCookie || DEFAULT_USER_ID;
+
+  try {
+    const { db } = await import("@/db");
+    const { users } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.select().from(users).where(eq(users.id, targetId)).limit(1);
+    if (result.length > 0) return result[0];
+  } catch {}
+
+  return ensureMinimalUser();
 }

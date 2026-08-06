@@ -38,7 +38,7 @@ export async function PATCH(request: Request) {
     } = body;
 
     const updatePayload: Record<string, any> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (name !== undefined) updatePayload.name = name;
@@ -46,6 +46,7 @@ export async function PATCH(request: Request) {
     if (riskMode !== undefined) updatePayload.riskMode = riskMode;
     if (maxDailyLoss !== undefined) updatePayload.maxDailyLoss = String(maxDailyLoss);
     if (maxLeverage !== undefined) updatePayload.maxLeverage = Number(maxLeverage);
+    // SQLite booleans are stored as integers (0/1), drizzle handles mode:"boolean"
     if (autoTradingEnabled !== undefined) updatePayload.autoTradingEnabled = Boolean(autoTradingEnabled);
     if (soundEffects !== undefined) updatePayload.soundEffects = Boolean(soundEffects);
     if (apiKeySimulation !== undefined) updatePayload.apiKeySimulation = Boolean(apiKeySimulation);

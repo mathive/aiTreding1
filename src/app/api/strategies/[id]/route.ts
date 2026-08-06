@@ -28,7 +28,7 @@ export async function PATCH(
     } = body;
 
     const updatePayload: Record<string, any> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (name !== undefined) updatePayload.name = name;

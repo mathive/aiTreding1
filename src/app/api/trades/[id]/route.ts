@@ -14,7 +14,7 @@ export async function PATCH(
     const { stopLoss, takeProfit, trailingStop, trailingDistance, notes } = body;
 
     const updatePayload: Record<string, any> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (stopLoss !== undefined) updatePayload.stopLoss = stopLoss ? String(stopLoss) : null;

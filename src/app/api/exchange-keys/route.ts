@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         isActive: true,
         connectionStatus,
         lastPingMs: latency,
-        lastConnectedAt: connectionStatus === "connected" ? new Date() : null,
+        lastConnectedAt: connectionStatus === "connected" ? new Date().toISOString() : null,
         lastError: connectionStatus === "error" ? "Invalid API key format" : null,
         ipWhitelist: ipWhitelist || null,
       })

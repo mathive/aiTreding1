@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 import { Toast } from "@/components/Toast";
+import { ConnectionGate } from "@/components/ConnectionGate";
 
 // Views
 import { DashboardOverview } from "@/components/views/DashboardOverview";
@@ -27,21 +28,39 @@ import { DepositResetModal } from "@/components/modals/DepositResetModal";
 import { NewTraderModal } from "@/components/modals/NewTraderModal";
 
 function MainContent() {
-  const { activeTab, toastMessage, isLoading } = useApp();
+  const { activeTab, setActiveTab, toastMessage, isLoading, mt5Connected, setMt5Connected, refreshAllData } = useApp();
   const [isNewTraderModalOpen, setIsNewTraderModalOpen] = useState(false);
+  const didRefresh = useRef(false);
+
+  // When MT5 connects, switch to overview and force a refresh
+  const handleConnected = () => {
+    setMt5Connected(true);
+    setActiveTab("overview");
+    didRefresh.current = false;
+  };
+
+  // Force refresh after gate closes
+  useEffect(() => {
+    if (mt5Connected && !didRefresh.current) {
+      didRefresh.current = true;
+      refreshAllData?.();
+    }
+  }, [mt5Connected, refreshAllData]);
+
+  if (!mt5Connected) {
+    return <ConnectionGate onConnected={handleConnected} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-slate-950 font-sans">
       <Navbar onOpenNewTraderModal={() => setIsNewTraderModalOpen(true)} />
-
       <div className="flex flex-1 relative overflow-hidden">
         <Sidebar />
-
         <main className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-900/30 to-slate-950 min-h-[calc(100vh-4rem)]">
           {isLoading ? (
             <div className="h-96 flex flex-col items-center justify-center gap-3 text-slate-400">
               <div className="w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
-              <p className="text-xs font-mono">Initializing Nexus AI Trading Engine...</p>
+              <p className="text-xs font-mono">Loading data from your Vantage account...</p>
             </div>
           ) : (
             <>
@@ -60,27 +79,16 @@ function MainContent() {
           )}
         </main>
       </div>
-
-      {/* Global Modals */}
       <TradeOrderModal />
       <EditPositionModal />
       <CreateStrategyModal />
       <DepositResetModal />
-      <NewTraderModal
-        isOpen={isNewTraderModalOpen}
-        onClose={() => setIsNewTraderModalOpen(false)}
-      />
-
-      {/* Floating Toast Notification */}
+      <NewTraderModal isOpen={isNewTraderModalOpen} onClose={() => setIsNewTraderModalOpen(false)} />
       <Toast message={toastMessage} />
     </div>
   );
 }
 
 export default function Page() {
-  return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
-  );
+  return <AppProvider><MainContent /></AppProvider>;
 }
