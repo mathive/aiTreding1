@@ -136,18 +136,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewTraderModal }) => {
 
       {/* Right: Quick Bot Trigger, Balance, Trader Switcher, Notifications */}
       <div className="flex items-center gap-3">
-        {/* Live/Paper Mode Badge */}
-        <button
-          onClick={() => setActiveTab("liveaccount")}
-          className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all ${
-            user?.tradingMode === "live"
-              ? "bg-rose-950/80 border-rose-800 text-rose-400 hover:bg-rose-900/80 ring-1 ring-rose-500/20"
-              : "bg-emerald-950/80 border-emerald-800 text-emerald-400 hover:bg-emerald-900/80"
-          }`}
-        >
-          <span className={`w-2 h-2 rounded-full ${user?.tradingMode === "live" ? "bg-rose-400 animate-pulse" : "bg-emerald-400 animate-pulse"}`} />
-          {user?.tradingMode === "live" ? "LIVE" : "PAPER"}
-        </button>
+        {/* Live MT5 Badge */}
+        <button onClick={() => setActiveTab("liveaccount")}
+          className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border cursor-pointer bg-rose-950/80 border-rose-800 text-rose-400 hover:bg-rose-900/80 ring-1 ring-rose-500/20">
+          <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />LIVE MT5</button>
 
         {/* Fast AI Scanner Trigger Button */}
         <button
@@ -163,21 +155,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewTraderModal }) => {
           <span className="sm:hidden">{isScanning ? "..." : "AI Scan"}</span>
         </button>
 
-        {/* Paper Balance Badge */}
-        <button
-          onClick={() => setIsDepositModalOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer text-left group"
-        >
-          <Wallet className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-          <div className="hidden sm:block">
-            <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Paper Balance</div>
-            <div className="text-xs font-mono font-bold text-emerald-400">
-              {formatCurrency(user?.balance || "50000")}
-            </div>
-          </div>
-          <span className="sm:hidden text-xs font-mono font-bold text-emerald-400">
-            {formatCurrency(user?.balance || "50000")}
-          </span>
+        {/* MT5 Account */}
+        <button onClick={() => setActiveTab("liveaccount")}
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-xl transition-all cursor-pointer text-left group">
+          <Zap className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+          <span className="hidden sm:block text-xs font-mono font-bold text-rose-400">Vantage MT5</span>
         </button>
 
         {/* Sound FX Toggle */}

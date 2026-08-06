@@ -29,9 +29,8 @@ export const ConnectionGate: React.FC<Props> = ({ onConnected }) => {
       const d = await r.json();
       if (!r.ok || !d.success) { setStep("idle"); setError(d.error||"Connection failed."); setConnecting(false); return; }
       // Bootstrap
-      try { await fetch("/api/bootstrap", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ mt5Login:login, mt5Server:server, accountName:d.account?.name, accountBalance:d.account?.balance }) }); } catch {}
-      setStep("done");
-      setTimeout(()=>onConnected(), 500);
+
+      onConnected();
     } catch { setStep("idle"); setError("Bridge unreachable. Run: cd mt5-bridge && python server.py"); }
     finally { setConnecting(false); }
   };

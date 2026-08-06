@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/utils";
 import {
   Key, Plus, Trash2, ShieldCheck, Zap, RefreshCw,
   CheckCircle2, AlertCircle, Wifi, ToggleLeft, ToggleRight,
-  Lock, Globe, X, Eye, EyeOff, ArrowRightLeft, Server, Terminal,
+  Lock, Globe, X, Eye, EyeOff, Server, Terminal,
 } from "lucide-react";
 
 interface ExchangeKeyItem {
@@ -183,19 +183,12 @@ export const LiveAccountView: React.FC = () => {
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl">
-              <button onClick={() => handleModeSwitch("paper")} disabled={isSwitching}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-2 ${!isLiveMode ? "bg-emerald-600 text-white shadow-lg shadow-emerald-950/80" : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"}`}>
-                <ShieldCheck className="w-4 h-4" />Paper Trading</button>
-              <div className="text-center"><ArrowRightLeft className="w-4 h-4 text-slate-600 mx-auto" /><span className="text-[9px] text-slate-500 font-mono block mt-0.5">MODE</span></div>
-              <button onClick={() => handleModeSwitch("live")} disabled={isSwitching}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-2 ${isLiveMode ? "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-lg shadow-rose-950/80 ring-2 ring-rose-500/30" : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"}`}>
-                <Zap className="w-4 h-4" />Live Trading</button>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-400 bg-gradient-to-r from-rose-600/20 to-red-600/20 px-5 py-2.5 rounded-xl border border-rose-800/50">
+                <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                LIVE TRADING VIA MT5
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className={`w-2.5 h-2.5 rounded-full ${isLiveMode ? "bg-rose-400 animate-pulse" : "bg-emerald-400 animate-pulse"}`} />
-              <span className={`font-bold ${isLiveMode ? "text-rose-400" : "text-emerald-400"}`}>{isLiveMode ? "LIVE MODE" : "PAPER MODE"}</span>
-              <span className="text-slate-500 font-mono">• {connectedCount} connection(s)</span>
-            </div>
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">• {connectedCount} connection(s)</div>
           </div>
         </div>
       </div>
@@ -209,8 +202,8 @@ export const LiveAccountView: React.FC = () => {
         </div>
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
           <div className="flex items-center justify-between mb-2"><span className="text-[11px] font-bold uppercase text-slate-400">Mode</span><Zap className={`w-4 h-4 ${isLiveMode ? "text-rose-400" : "text-emerald-400"}`} /></div>
-          <span className={`text-2xl font-bold ${isLiveMode ? "text-rose-400" : "text-emerald-400"}`}>{isLiveMode ? "LIVE" : "PAPER"}</span>
-          <p className="text-[10px] text-slate-500 mt-1">{isLiveMode ? "Real orders" : "Simulated orders"}</p>
+          <span className="text-2xl font-bold text-rose-400">LIVE</span>
+          <p className="text-[10px] text-slate-500 mt-1">Real orders via Vantage MT5</p>
         </div>
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
           <div className="flex items-center justify-between mb-2"><span className="text-[11px] font-bold uppercase text-slate-400">Balance</span><ShieldCheck className="w-4 h-4 text-cyan-400" /></div>

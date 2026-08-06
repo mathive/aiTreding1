@@ -11,9 +11,8 @@ export interface UserAccount {
   avatar?: string;
   role?: string;
   traderType: string;
-  balance: string;
-  initialBalance: string;
-  liveBalance?: string;
+  balance?: string;
+  initialBalance?: string;
   currency: string;
   riskMode: string;
   maxDailyLoss: string;
@@ -22,8 +21,7 @@ export interface UserAccount {
   soundEffects: boolean;
   theme: string;
   apiKeySimulation: boolean;
-  tradingMode: string; // paper | live
-  isLiveVerified?: boolean;
+  tradingMode?: string;
   twoFactorEnabled?: boolean;
   scanIntervalSeconds?: number;
 }
@@ -227,60 +225,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const refreshAllData = useCallback(async () => {
     try {
-      // Fetch users
-      const userRes = await fetch("/api/users");
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        setUser(userData.user);
-        setAvailableUsers(userData.availableUsers || []);
-      }
-
-      // Fetch strategies
-      const stratRes = await fetch("/api/strategies");
-      if (stratRes.ok) {
-        const stratData = await stratRes.json();
-        setStrategies(stratData.strategies || []);
-      }
-
-      // Fetch bot config
-      const botRes = await fetch("/api/bot");
-      if (botRes.ok) {
-        const botData = await botRes.json();
-        setBotConfig(botData.bot?.isActive !== undefined ? botData.bot : null);
-      }
-
-      // Fetch trades — sync from MT5 for live positions
-      const tradesRes = await fetch("/api/trades?sync=mt5");
-      if (tradesRes.ok) {
-        const tradesData = await tradesRes.json();
-        setTrades(tradesData.trades || []);
-      }
-
-      // Fetch market assets
-      const marketRes = await fetch("/api/market");
-      if (marketRes.ok) {
-        const marketData = await marketRes.json();
-        setMarketAssets(marketData.assets || []);
-      }
-
-      // Fetch notifications
-      const notifRes = await fetch("/api/notifications");
-      if (notifRes.ok) {
-        const notifData = await notifRes.json();
-        setNotifications(notifData.notifications || []);
-      }
-
-      // Fetch watchlist
-      const wlRes = await fetch("/api/watchlists");
-      if (wlRes.ok) {
-        const wlData = await wlRes.json();
-        setWatchlists(wlData.watchlist || []);
-      }
-    } catch (err) {
-      console.error("Error refreshing data:", err);
-    } finally {
-      setIsLoading(false);
-    }
+      const [userRes, tradesRes, marketRes] = await Promise.all([
+        fetch("/api/users"),
+        fetch("/api/trades"),
+        fetch("/api/market"),
+      ]);
+      if (userRes.ok) { const d = await userRes.json(); setUser(d.user); setAvailableUsers(d.availableUsers || []); }
+      if (tradesRes.ok) { const d = await tradesRes.json(); setTrades(d.trades || []); }
+      if (marketRes.ok) { const d = await marketRes.json(); setMarketAssets(d.assets || []); }
+    } catch (err) { console.error(err); }
+    finally { setIsLoading(false); }
   }, []);
 
   // Initial load
@@ -545,25 +499,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Trades CRUD & Close
   const executeTrade = async (tradeData: any) => {
     try {
-      const res = await fetch("/api/trades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tradeData),
-      });
+      const res = await fetch("/api/trades", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(tradeData) });
       const data = await res.json();
-      if (res.ok) {
-        if (user?.soundEffects) playSound(tradeData.type === "BUY" ? "buy" : "sell");
-        showToast(`Trade placed on ${tradeData.symbol} successfully!`, "success");
+      if (res.ok && data.success) {
+        showToast(`MT5 order #${data.ticket || ""} placed on ${tradeData.symbol}!`, "success");
         await refreshAllData();
         return true;
-      } else {
-        showToast(data.error || "Failed to execute trade", "error");
-        return false;
       }
-    } catch (err: any) {
-      showToast(err.message || "Trade execution failed", "error");
+      showToast(data.error || "Order failed", "error");
       return false;
-    }
+    } catch (e: any) { showToast(e.message, "error"); return false; }
   };
 
   const updateTrade = async (id: string, updates: Partial<TradeItem>) => {
@@ -585,13 +530,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const closeTrade = async (id: string, closePercent = 100, closeReason = "manual_close") => {
+  const closeTrade = async (id: string, closePercent = 100) => {
     try {
       const target = trades.find((t) => t.id === id);
       const res = await fetch(`/api/trades/${id}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ closePercent, closeReason }),
+        body: JSON.stringify({ closePercent }),
       });
       const data = await res.json();
       if (res.ok) {

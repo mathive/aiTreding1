@@ -28,7 +28,6 @@ import { NewTraderModal } from "@/components/modals/NewTraderModal";
 function MainContent() {
   const { activeTab, setActiveTab, toastMessage, isLoading, mt5Connected, setMt5Connected, refreshAllData } = useApp();
   const [isNewTraderModalOpen, setIsNewTraderModalOpen] = useState(false);
-  const [bootstrapping, setBootstrapping] = useState(true);
   const didBootstrap = useRef(false);
 
   const handleConnected = () => {
@@ -39,13 +38,7 @@ function MainContent() {
   useEffect(() => {
     if (mt5Connected && !didBootstrap.current) {
       didBootstrap.current = true;
-      (async () => {
-        await refreshAllData?.();
-        setTimeout(async () => {
-          await refreshAllData?.();
-          setBootstrapping(false);
-        }, 1500);
-      })();
+      refreshAllData?.();
     }
   }, [mt5Connected, refreshAllData]);
 
@@ -53,14 +46,7 @@ function MainContent() {
     return <ConnectionGate onConnected={handleConnected} />;
   }
 
-  if (bootstrapping || isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
-        <div className="w-10 h-10 rounded-full border-3 border-red-500 border-t-transparent animate-spin" />
-        <p className="text-sm text-slate-400 font-mono">Syncing your Vantage account...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-slate-950 font-sans">

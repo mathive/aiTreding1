@@ -109,7 +109,7 @@ export const DashboardOverview: React.FC = () => {
           </p>
           <div className="flex items-center gap-1.5 text-xs mt-2 text-slate-400">
             <span>Starting:</span>
-            <span className="font-mono text-slate-300 font-semibold">{formatCurrency(user?.initialBalance)}</span>
+            <span className="font-mono text-slate-300 font-semibold">Vantage MT5</span>
           </div>
         </div>
 
