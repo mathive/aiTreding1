@@ -97,4 +97,19 @@ def get_tick_batch(symbols):
 def get_symbols():
     if not _connected: return {"error":"MT5 not connected"}
     syms = mt5.symbols_get()
-    return [{"name":s.name,"description":s.description} for s in syms[:200]] if syms else []
+    return [{"name":s.name,"description":s.description,"volume_min":s.volume_min,"volume_step":s.volume_step,"digits":s.digits,"trade_mode":s.trade_mode,"spread":s.spread,"bid":s.bid,"ask":s.ask} for s in syms[:500]] if syms else []
+
+def get_symbol_info(symbol):
+    """Get detailed info for one symbol including lot constraints."""
+    if not _connected: return {"error":"MT5 not connected"}
+    si = mt5.symbol_info(symbol)
+    if not si: return {"error":"Symbol not found"}
+    return {
+        "name":si.name,"description":si.description,
+        "volume_min":si.volume_min,"volume_step":si.volume_step,
+        "volume_max":si.volume_max,"digits":si.digits,
+        "trade_mode":si.trade_mode,"spread":si.spread,
+        "contract_size":si.trade_contract_size,
+        "margin_initial":si.margin_initial,"margin_maintenance":si.margin_maintenance,
+        "swap_long":si.swap_long,"swap_short":si.swap_short,
+    }

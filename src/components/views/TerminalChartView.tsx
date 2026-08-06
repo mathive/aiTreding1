@@ -50,7 +50,8 @@ export const TerminalChartView: React.FC = () => {
 
   // Order placement state
   const [orderType, setOrderType] = useState<"BUY" | "SELL">("BUY");
-  const [tradeAmount, setTradeAmount] = useState<number>(2500);
+  const minVol = (asset as any)?.volumeMin ?? 0.01;
+  const [tradeAmount, setTradeAmount] = useState<number>(minVol);
   const [leverage, setLeverage] = useState<number>(5);
   const [stopLoss, setStopLoss] = useState<string>("");
   const [takeProfit, setTakeProfit] = useState<string>("");
@@ -92,6 +93,7 @@ export const TerminalChartView: React.FC = () => {
       setStopLoss(sl.toFixed(price < 10 ? 4 : 2));
       setTakeProfit(tp.toFixed(price < 10 ? 4 : 2));
       setLeverage(asset.recommendedLeverage || 5);
+      setTradeAmount((asset as any).volumeMin ?? 0.01);
     }
   }, [asset, orderType]);
 
@@ -348,16 +350,16 @@ export const TerminalChartView: React.FC = () => {
             {/* Margin Amount */}
             <div>
               <label className="block text-[11px] font-semibold uppercase text-slate-400 mb-1">
-                Margin Capital (USD)
+                Volume (Lots) — Min: {(asset as any).volumeMin ?? 0.01}
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-2 text-slate-500 text-xs">$</span>
                 <input
                   type="number"
-                  min="50"
-                  step="50"
+                  min={(asset as any).volumeMin ?? 0.01}
+                  step={(asset as any).volumeStep ?? 0.01}
                   value={tradeAmount}
-                  onChange={(e) => setTradeAmount(Math.max(10, parseFloat(e.target.value) || 0))}
+                  onChange={(e) => setTradeAmount(Math.max((asset as any).volumeMin ?? 0.01, parseFloat(e.target.value) || 0))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
                   required
                 />

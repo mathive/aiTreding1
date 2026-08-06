@@ -78,6 +78,12 @@ def tick_batch(req: TickBatchRequest):
 @app.get("/symbols")
 def symbols(): return mt5_service.get_symbols()
 
+@app.get("/symbol-info/{symbol}")
+def symbol_info(symbol: str):
+    r = mt5_service.get_symbol_info(symbol)
+    if "error" in r: raise HTTPException(400, r["error"])
+    return r
+
 if __name__ == "__main__":
     import uvicorn
     print("Nexus MT5 Bridge — http://localhost:8000")

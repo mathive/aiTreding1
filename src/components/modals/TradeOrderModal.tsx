@@ -16,7 +16,8 @@ export const TradeOrderModal: React.FC = () => {
   } = useApp();
 
   const [tradeType, setTradeType] = useState<"BUY" | "SELL">("BUY");
-  const [amount, setAmount] = useState<number>(2500);
+  const minLot = (asset as any)?.volumeMin ?? 0.01;
+  const [amount, setAmount] = useState<number>(minLot);
   const [leverage, setLeverage] = useState<number>(5);
   const [stopLoss, setStopLoss] = useState<string>("");
   const [takeProfit, setTakeProfit] = useState<string>("");
@@ -35,6 +36,8 @@ export const TradeOrderModal: React.FC = () => {
       setStopLoss(sl.toFixed(price < 10 ? 4 : 2));
       setTakeProfit(tp.toFixed(price < 10 ? 4 : 2));
       setLeverage(asset.recommendedLeverage || 5);
+      // Default to broker min lot size
+      setAmount((asset as any).volumeMin ?? 0.01);
       if (strategies.length > 0 && !selectedStrategy) {
         setSelectedStrategy(strategies[0].name);
       }
@@ -154,27 +157,23 @@ export const TradeOrderModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Amount and Leverage */}
+          {/* Lot Size from MT5 broker + Leverage */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold uppercase text-slate-400 mb-1">
-                Margin Amount (USD)
+                Volume (Lots) — Broker Min: {(asset as any).volumeMin ?? 0.01}
               </label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-slate-500 text-xs">$</span>
-                <input
-                  type="number"
-                  min="50"
-                  max={parseFloat(user?.balance || "50000")}
-                  step="50"
-                  value={amount}
-                  onChange={(e) => setAmount(Math.max(10, parseFloat(e.target.value) || 0))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
-                  required
-                />
-              </div>
+              <input
+                type="number"
+                min={(asset as any).volumeMin ?? 0.01}
+                step={(asset as any).volumeStep ?? 0.01}
+                value={amount}
+                onChange={(e) => setAmount(Math.max((asset as any).volumeMin ?? 0.01, parseFloat(e.target.value) || 0))}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                required
+              />
               <span className="text-[10px] text-slate-500 mt-1 block">
-                Available: {formatCurrency(user?.balance)}
+                Min lot: {(asset as any).volumeMin ?? 0.01} • Step: {(asset as any).volumeStep ?? 0.01}
               </span>
             </div>
 
@@ -194,7 +193,7 @@ export const TradeOrderModal: React.FC = () => {
                 className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               />
               <div className="text-[10px] text-slate-400 font-mono mt-1">
-                Position Size: <span className="text-white font-semibold">{formatCurrency(positionSize)}</span>
+                Notional: <span className="text-white font-semibold">{formatCurrency(positionSize)}</span>
               </div>
             </div>
           </div>
