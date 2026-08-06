@@ -96,42 +96,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewTraderModal }) => {
           </div>
         </div>
 
-        {/* Live Top Tickers Ribbon (Hidden on very small screens) */}
-        <div className="hidden xl:flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5">
-          <div className="flex items-center gap-1 text-[11px] font-semibold text-cyan-400 mr-2 border-r border-slate-800 pr-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            LIVE MARKETS
-          </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
-            {topTickers.map((asset) => {
-              const isPositive = asset.change24h >= 0;
-              return (
-                <button
-                  key={asset.symbol}
-                  onClick={() => {
-                    setSelectedSymbol(asset.symbol);
-                    setActiveTab("terminal");
-                  }}
-                  className="flex items-center gap-1.5 hover:text-cyan-300 transition-colors cursor-pointer group/item"
-                >
-                  <span className="font-semibold text-slate-300 group-hover/item:text-white">
-                    {asset.symbol.split("/")[0]}
-                  </span>
-                  <span className="text-slate-400">
-                    ${asset.currentPrice < 10 ? asset.currentPrice.toFixed(2) : asset.currentPrice.toLocaleString()}
-                  </span>
-                  <span
-                    className={`text-[10px] px-1 py-0.2 rounded font-medium ${
-                      isPositive ? "text-emerald-400 bg-emerald-950/60" : "text-rose-400 bg-rose-950/60"
-                    }`}
-                  >
-                    {formatPercent(asset.change24h)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Right: Quick Bot Trigger, Balance, Trader Switcher, Notifications */}
